@@ -1,0 +1,70 @@
+@page "/staff"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject AuthService Auth
+
+<PageTitle>Staff</PageTitle>
+<h3>Staff logins</h3>
+<p class="text-muted">People who can sign in to this admin site. Drivers and customers sign in to the mobile app with a phone OTP instead.</p>
+
+@if (error is not null) { <div class="alert alert-danger">@error</div> }
+
+<div class="card card-body mb-3">
+    <div class="row g-2">
+        <div class="col-md-3"><input class="form-control" placeholder="Name" @bind="name" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Phone" @bind="phone" /></div>
+        <div class="col-md-2"><select class="form-select" @bind="role"><option value="@UserRole.Staff">Staff</option><option value="@UserRole.Admin">Admin</option></select></div>
+        <div class="col-md-3"><input type="password" class="form-control" placeholder="Password (8+)" @bind="password" /></div>
+        <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="Add">Add</button></div>
+    </div>
+</div>
+
+<table class="table table-sm">
+    <thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Active</th></tr></thead>
+    <tbody>
+    @foreach (var u in users)
+    {
+        <tr><td>@u.Name</td><td>@u.Phone</td><td>@u.Role</td>
+            <td><input type="checkbox" class="form-check-input" checked="@u.IsActive" @onchange="e => SetActive(u.Id, (bool)e.Value!)" /></td></tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    List<AppUser> users = new();
+    string name = "", phone = "", password = "";
+    UserRole role = UserRole.Staff;
+    string? error;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        users = await db.Users.Where(u => u.Role == UserRole.Admin || u.Role == UserRole.Staff).OrderBy(u => u.Name).ToListAsync();
+    }
+
+    async Task Add()
+    {
+        error = null;
+        var p = AuthService.Normalize(phone);
+        if (string.IsNullOrWhiteSpace(name) || p.Length < 10) { error = "Enter a name and a 10-digit phone number."; return; }
+        if (password.Length < 8) { error = "Password must be at least 8 characters."; return; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Users.AnyAsync(u => u.Phone == p)) { error = "That phone number is already registered."; return; }
+        var user = new AppUser { Name = name, Phone = p, Role = role };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        await Auth.SetPasswordAsync(user.Id, password);
+        name = phone = password = "";
+        await Load();
+    }
+
+    async Task SetActive(int id, bool active)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        (await db.Users.FindAsync(id))!.IsActive = active;
+        await db.SaveChangesAsync();
+        await Load();
+    }
+}

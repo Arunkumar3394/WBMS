@@ -14,3 +14,6 @@
 @using Wbms.Data
 @using Wbms.Data.Services
 @inject IDbContextFactory<WbmsDbContext> DbFactory
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize(Roles = "Admin,Staff")]

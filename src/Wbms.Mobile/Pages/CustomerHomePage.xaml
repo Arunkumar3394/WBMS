@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Wbms.Client.ViewModels;assembly=Wbms.Client"
+             xmlns:c="clr-namespace:Wbms.Client;assembly=Wbms.Client"
+             x:Class="Wbms.Mobile.Pages.CustomerHomePage"
+             x:DataType="vm:CustomerViewModel"
+             Title="WBMS Water">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Sign out" Clicked="OnSignOut" />
+    </ContentPage.ToolbarItems>
+
+    <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding Busy, Mode=OneWay}">
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="14">
+                <Label Text="{Binding Profile.Name, StringFormat='Hello, {0}'}" Style="{StaticResource Title}" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout>
+                            <Label Text="Amount due" TextColor="{StaticResource Muted}" />
+                            <Label Text="{Binding Profile.Balance, StringFormat='₹{0:N0}'}" FontSize="22" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource Card}">
+                        <VerticalStackLayout>
+                            <Label Text="Cans with you" TextColor="{StaticResource Muted}" />
+                            <Label Text="{Binding Profile.CansHeld}" FontSize="22" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- Book water -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Book water" FontAttributes="Bold" FontSize="18" />
+                        <Picker Title="Product" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="{Binding Quantity, StringFormat='Quantity: {0}'}" VerticalOptions="Center" FontSize="17" />
+                            <Stepper Grid.Column="1" Minimum="1" Maximum="50" Increment="1" Value="{Binding Quantity}" />
+                        </Grid>
+                        <HorizontalStackLayout Spacing="8">
+                            <CheckBox IsChecked="{Binding PayOnCredit}" />
+                            <Label Text="Add to my account (credit) instead of paying cash" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding Estimate, StringFormat='Total: ₹{0:N0}'}" FontAttributes="Bold" />
+                        <Button Text="Book now" Command="{Binding BookCommand}" />
+                        <Label Text="{Binding Message}" TextColor="{StaticResource Primary}" IsVisible="{Binding Message, Converter={StaticResource HasValue}}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="{Binding Error}" Style="{StaticResource Error}" IsVisible="{Binding Error, Converter={StaticResource HasValue}}" />
+
+                <Label Text="My orders" FontAttributes="Bold" FontSize="18" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Orders}" Spacing="8">
+                    <BindableLayout.EmptyView>
+                        <Label Text="No orders yet." TextColor="{StaticResource Muted}" />
+                    </BindableLayout.EmptyView>
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="c:Order">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOrderTapped" CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout>
+                                        <Label Text="{Binding OrderNo}" FontAttributes="Bold" />
+                                        <Label Text="{Binding ItemsText}" />
+                                        <Label Text="{Binding Total, StringFormat='₹{0:N0}'}" TextColor="{StaticResource Muted}" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding Status}" TextColor="{StaticResource Primary}" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <Label Text="Invoices" FontAttributes="Bold" FontSize="18" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Invoices}" Spacing="4">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="c:Invoice">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding InvoiceNo}" />
+                                <Label Grid.Column="1" Text="{Binding Amount, StringFormat='₹{0:N0}'}" />
+                                <Label Grid.Column="2" Text="{Binding Status}" TextColor="{StaticResource Muted}" />
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

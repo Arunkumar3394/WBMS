@@ -18,6 +18,7 @@ public class WbmsDbContext(DbContextOptions<WbmsDbContext> options) : DbContext(
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<LoginOtp> LoginOtps => Set<LoginOtp>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -37,6 +38,7 @@ public class WbmsDbContext(DbContextOptions<WbmsDbContext> options) : DbContext(
         b.Entity<Order>().HasOne(o => o.Invoice).WithOne().HasForeignKey<Invoice>(i => i.OrderId);
         b.Entity<OrderItem>().Ignore(i => i.LineTotal);
         b.Entity<LocationPing>().HasIndex(p => new { p.DeliveryId, p.At });
+        b.Entity<LoginOtp>().HasIndex(o => new { o.Phone, o.CreatedAt });
 
         // SQL Server rejects multiple cascade paths, and business records should never vanish with a parent.
         foreach (var fk in b.Model.GetEntityTypes().SelectMany(t => t.GetForeignKeys()))

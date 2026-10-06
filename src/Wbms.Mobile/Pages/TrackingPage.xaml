@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Wbms.Client.ViewModels;assembly=Wbms.Client"
+             x:Class="Wbms.Mobile.Pages.TrackingPage"
+             x:DataType="vm:TrackingViewModel"
+             Title="{Binding Order.OrderNo}">
+    <VerticalStackLayout Padding="16" Spacing="14">
+        <Label Text="{Binding StatusText}" Style="{StaticResource Title}" />
+        <Label Text="{Binding Order.ItemsText}" />
+        <Label Text="{Binding Order.Total, StringFormat='Total: ₹{0:N0}'}" />
+
+        <Border Style="{StaticResource Card}" IsVisible="{Binding DriverMapLink, Converter={StaticResource HasValue}}">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="📍 Driver location is live" FontAttributes="Bold" />
+                <Label Text="{Binding LastUpdate, StringFormat='Updated {0:t}'}" TextColor="{StaticResource Muted}"
+                       IsVisible="{Binding LastUpdate, Converter={StaticResource HasValue}}" />
+                <Button Text="Show driver on map" Clicked="OnShowMap" />
+            </VerticalStackLayout>
+        </Border>
+
+        <ActivityIndicator IsRunning="{Binding Busy}" IsVisible="{Binding Busy}" />
+        <Label Text="{Binding Error}" Style="{StaticResource Error}" IsVisible="{Binding Error, Converter={StaticResource HasValue}}" />
+    </VerticalStackLayout>
+</ContentPage>

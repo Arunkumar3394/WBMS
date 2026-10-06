@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Wbms.Client.ViewModels;assembly=Wbms.Client"
+             x:Class="Wbms.Mobile.Pages.DeliveryPage"
+             x:DataType="vm:DeliveryViewModel"
+             Title="{Binding Order.OrderNo}">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="14">
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="{Binding Order.CustomerName}" Style="{StaticResource Title}" />
+                    <Label Text="{Binding Order.Address}" />
+                    <Label Text="{Binding Order.ItemsText}" TextColor="{StaticResource Muted}" />
+                    <Label Text="{Binding Order.PaymentMode, StringFormat='Payment: {0}'}" />
+                    <Label Text="{Binding Order.Total, StringFormat='Order total: ₹{0:N0}'}" FontAttributes="Bold" />
+                    <HorizontalStackLayout Spacing="10" Margin="0,6,0,0">
+                        <Button Text="📞 Call" Clicked="OnCall" />
+                        <Button Text="🧭 Navigate" Clicked="OnNavigate" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Before the trip -->
+            <Button Text="Start delivery" IsVisible="{Binding CanStart}" Command="{Binding StartCommand}" />
+            <Label Text="Starting sends the customer a 4-digit code by SMS and shares your location while you drive."
+                   IsVisible="{Binding CanStart}" TextColor="{StaticResource Muted}" />
+
+            <!-- At the door -->
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding CanComplete}">
+                <Label Text="{Binding LastLocationSentAt, StringFormat='📍 Location shared at {0:t}'}" TextColor="{StaticResource Muted}"
+                       IsVisible="{Binding LastLocationSentAt, Converter={StaticResource HasValue}}" />
+                <Label Text="Code from customer" />
+                <Entry Keyboard="Numeric" MaxLength="4" Placeholder="4-digit code" Text="{Binding Otp}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <VerticalStackLayout>
+                        <Label Text="Full cans given" />
+                        <Entry Keyboard="Numeric" Text="{Binding FullCansDelivered}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1">
+                        <Label Text="Empty cans collected" />
+                        <Entry Keyboard="Numeric" Text="{Binding EmptyCansCollected}" />
+                    </VerticalStackLayout>
+                </Grid>
+                <Label Text="Cash collected (₹)" />
+                <Entry Keyboard="Numeric" Text="{Binding CashCollected}" />
+                <Button Text="Complete delivery" Command="{Binding CompleteCommand}" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding Order.InvoiceNo, StringFormat='✅ Delivered. Invoice {0} created.'}" IsVisible="{Binding IsDone}" FontSize="18" />
+
+            <ActivityIndicator IsRunning="{Binding Busy}" IsVisible="{Binding Busy}" />
+            <Label Text="{Binding Error}" Style="{StaticResource Error}" IsVisible="{Binding Error, Converter={StaticResource HasValue}}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
