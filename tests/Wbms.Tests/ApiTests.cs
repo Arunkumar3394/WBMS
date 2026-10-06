@@ -19,7 +19,7 @@ public class ApiTests : IDisposable
     public class SmsInbox : IOtpSender
     {
         public readonly Dictionary<string, string> Last = new();
-        public Task SendAsync(string phone, string otp, string orderNo) { lock (Last) Last[phone] = otp; return Task.CompletedTask; }
+        public Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null) { lock (Last) Last[phone] = otp; return Task.CompletedTask; }
     }
 
     public class Factory : WebApplicationFactory<Program>
@@ -113,6 +113,18 @@ public class ApiTests : IDisposable
         var order = await done.Content.ReadFromJsonAsync<JsonElement>(Json);
         Assert.Equal("Completed", order.GetProperty("status").GetString());
         Assert.False(string.IsNullOrEmpty(order.GetProperty("invoiceNo").GetString()));
+
+        // Customer downloads the invoice PDF
+        var invoices = await customer.GetFromJsonAsync<JsonElement>($"/api/customers/{me.GetProperty("customerId").GetInt32()}/invoices", Json);
+        var invoiceId = invoices[0].GetProperty("id").GetInt32();
+        var pdf = await customer.GetAsync($"/api/invoices/{invoiceId}/pdf");
+        pdf.EnsureSuccessStatusCode();
+        Assert.Equal("application/pdf", pdf.Content.Headers.ContentType!.MediaType);
+        var bytes = await pdf.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+
+        // A driver can't download a customer's invoice
+        Assert.Equal(HttpStatusCode.Forbidden, (await driver.GetAsync($"/api/invoices/{invoiceId}/pdf")).StatusCode);
     }
 
     [Fact]

@@ -43,11 +43,19 @@ public class WbmsApi(HttpClient http)
     // Customer
     public Task<List<Product>> ProductsAsync() => Send<List<Product>>(HttpMethod.Get, "api/products");
     public Task<Order> BookAsync(BookRequest r) => Send<Order>(HttpMethod.Post, "api/orders", r);
+    public async Task<Uri> PaymentLinkAsync(int id) =>
+        new((await Send<JsonElement>(HttpMethod.Post, $"api/orders/{id}/payment-link")).GetProperty("url").GetString()!);
     public Task<Order> CancelAsync(int id) => Send<Order>(HttpMethod.Post, $"api/orders/{id}/cancel");
+    public async Task<byte[]> InvoicePdfAsync(int invoiceId)
+    {
+        using var res = await SendRaw(HttpMethod.Get, $"api/invoices/{invoiceId}/pdf", null, default);
+        return await res.Content.ReadAsByteArrayAsync();
+    }
     public Task<List<Invoice>> InvoicesAsync(int customerId) => Send<List<Invoice>>(HttpMethod.Get, $"api/customers/{customerId}/invoices");
 
     // Driver
     public Task<Order> StartAsync(int id) => Send<Order>(HttpMethod.Post, $"api/orders/{id}/start");
+    public Task ResendOtpAsync(int id) => Send(HttpMethod.Post, $"api/orders/{id}/resend-otp");
     public Task SendLocationAsync(int id, GeoPoint p, CancellationToken ct = default) => Send(HttpMethod.Post, $"api/orders/{id}/location", new { lat = p.Lat, lng = p.Lng }, ct);
     public Task<Order> CompleteAsync(int id, CompleteRequest r) => Send<Order>(HttpMethod.Post, $"api/orders/{id}/complete", r);
 

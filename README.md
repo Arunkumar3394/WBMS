@@ -45,9 +45,18 @@ If Visual Studio says it can't load `Wbms.Mobile`, the MAUI workload is missing;
 
 Command line: `dotnet test tests/Wbms.Tests`, `dotnet run --project src/Wbms.Admin`, `dotnet run --project src/Wbms.Api`.
 
+## Going live: settings to fill in
+
+Put real values in user secrets or environment variables (e.g. `Msg91__AuthKey`), not in `appsettings.json`.
+
+| Setting | Where | What |
+|---|---|---|
+| `Jwt:Key` | API | 32+ random characters; the API won't start without it |
+| `Sms:Provider` = `Msg91`, `Msg91:AuthKey`, `Msg91:LoginTemplateId`, `Msg91:DeliveryTemplateId` | API and Admin | Real SMS codes. Create two DLT-approved Flow templates in MSG91 using `##otp##` (and `##order##` for delivery). Leave `Sms:Provider` as `Console` to print codes instead. |
+| `Razorpay:KeyId`, `Razorpay:KeySecret`, `Razorpay:WebhookSecret` | API | Online payment. In the Razorpay dashboard add a webhook to `https://<your-api>/api/razorpay/webhook` for `payment_link.paid` and `payment.captured`. |
+| `Business:Name`, `Address`, `Phone`, `Gstin` | API and Admin | Printed on invoice PDFs |
+
 ## Not done yet
 
-- SMS for login and delivery OTPs (currently printed to the console by `ConsoleOtpSender`). **Needed before going live.**
-- Razorpay order creation from the app (the webhook that marks orders paid is in place; set `Razorpay:WebhookSecret`).
-- Invoice PDFs and reports.
-- Mobile app: location is shared only while the delivery screen is open (no background tracking yet), the map opens in Google Maps rather than inside the app, and online payment in the app is not wired up (customers choose cash or credit).
+- Mobile app: location is shared only while the delivery screen is open (no background tracking yet), and the map opens in Google Maps rather than inside the app.
+- GST calculation on invoices (the tax field exists but is always 0).

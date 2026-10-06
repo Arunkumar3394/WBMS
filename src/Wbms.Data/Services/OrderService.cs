@@ -99,15 +99,30 @@ public class OrderService(WbmsDbContext db, IOtpSender otpSender)
         var delivery = order.Delivery!;
         if (delivery.DriverId != driverId) throw new WorkflowException("This order is assigned to another driver.");
 
-        var otp = Otp.Generate();
-        delivery.OtpHash = Otp.Hash(otp, $"delivery:{delivery.Id}");
         delivery.StartedAt = DateTime.UtcNow;
         order.Status = OrderStatus.OutForDelivery;
         await db.SaveChangesAsync();
-
-        var phone = await db.Customers.Where(c => c.Id == order.CustomerId).Select(c => c.User.Phone).FirstAsync();
-        await otpSender.SendAsync(phone, otp, order.OrderNo);
+        await SendDeliveryOtp(order);
         return order;
+    }
+
+    /// <summary>New code for the customer, e.g. when the SMS didn't arrive. The old code stops working.</summary>
+    public async Task<Order> ResendDeliveryOtpAsync(int orderId, int driverId)
+    {
+        var order = await Get(orderId);
+        Require(order, OrderStatus.OutForDelivery);
+        if (order.Delivery!.DriverId != driverId) throw new WorkflowException("This order is assigned to another driver.");
+        await SendDeliveryOtp(order);
+        return order;
+    }
+
+    private async Task SendDeliveryOtp(Order order)
+    {
+        var otp = Otp.Generate();
+        order.Delivery!.OtpHash = Otp.Hash(otp, $"delivery:{order.Delivery.Id}");
+        await db.SaveChangesAsync();
+        var phone = await db.Customers.Where(c => c.Id == order.CustomerId).Select(c => c.User.Phone).FirstAsync();
+        await otpSender.SendAsync(phone, otp, OtpPurpose.Delivery, order.OrderNo);
     }
 
     public async Task<Delivery> RecordLocationAsync(int orderId, int driverId, double lat, double lng)

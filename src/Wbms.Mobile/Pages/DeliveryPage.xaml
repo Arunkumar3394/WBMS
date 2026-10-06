@@ -45,6 +45,9 @@
                 <Label Text="Cash collected (₹)" />
                 <Entry Keyboard="Numeric" Text="{Binding CashCollected}" />
                 <Button Text="Complete delivery" Command="{Binding CompleteCommand}" />
+                <Button Text="Customer didn't get the code? Resend" BackgroundColor="Transparent" TextColor="{StaticResource Primary}"
+                        Command="{Binding ResendCodeCommand}" />
+                <Label Text="{Binding Info}" TextColor="{StaticResource Primary}" IsVisible="{Binding Info, Converter={StaticResource HasValue}}" />
             </VerticalStackLayout>
 
             <Label Text="{Binding Order.InvoiceNo, StringFormat='✅ Delivered. Invoice {0} created.'}" IsVisible="{Binding IsDone}" FontSize="18" />

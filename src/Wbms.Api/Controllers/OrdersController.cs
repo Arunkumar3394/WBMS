@@ -75,6 +75,14 @@ public class OrdersController(WbmsDbContext db, OrderService orders, IHubContext
     [Authorize(Roles = Roles.Driver)]
     public async Task<OrderDto> Start(int id) => await Reload((await orders.StartDeliveryAsync(id, User.RequireDriverId())).Id);
 
+    [HttpPost("{id:int}/resend-otp")]
+    [Authorize(Roles = Roles.Driver)]
+    public async Task<IActionResult> ResendOtp(int id)
+    {
+        await orders.ResendDeliveryOtpAsync(id, User.RequireDriverId());
+        return NoContent();
+    }
+
     [HttpPost("{id:int}/location")]
     [Authorize(Roles = Roles.Driver)]
     public async Task<IActionResult> Location(int id, LocationRequest req)

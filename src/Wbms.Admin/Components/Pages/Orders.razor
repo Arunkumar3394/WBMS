@@ -81,7 +81,7 @@
                 {
                     <a class="btn btn-sm btn-outline-primary ms-1" target="_blank" href="https://maps.google.com/?q=@o.Delivery.LastLat,@o.Delivery.LastLng">Map</a>
                 }
-                @if (o.Invoice is not null) { <span class="small text-muted ms-1">@o.Invoice.InvoiceNo (@o.Invoice.Status)</span> }
+                @if (o.Invoice is not null) { <a class="small ms-1" href="invoices/@(o.Invoice.Id).pdf" target="_blank">@o.Invoice.InvoiceNo (@o.Invoice.Status)</a> }
             </td>
         </tr>
     }

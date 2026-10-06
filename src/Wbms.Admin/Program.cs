@@ -11,7 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddDbContextFactory<WbmsDbContext>(o => o.UseSqlServer(builder.Configuration.GetConnectionString("Wbms")));
-builder.Services.AddSingleton<IOtpSender, ConsoleOtpSender>();
+builder.Services.AddWbmsSms(builder.Configuration);
+builder.Services.AddWbmsInvoices(builder.Configuration);
 builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(o =>
@@ -45,6 +46,12 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+
+app.MapGet("/invoices/{id:int}.pdf", async (int id, InvoicePdf invoices) =>
+{
+    var (pdf, fileName, _) = await invoices.RenderAsync(id);
+    return Results.File(pdf, "application/pdf", fileName);
+}).RequireAuthorization(new Microsoft.AspNetCore.Authorization.AuthorizeAttribute { Roles = "Admin,Staff" });
 
 app.MapPost("/logout", async (HttpContext ctx) =>
 {
