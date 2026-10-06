@@ -1,0 +1,41 @@
+@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>WBMS Dashboard</PageTitle>
+<h3>Today</h3>
+
+@if (stats is null) { <p>Loading…</p> }
+else
+{
+    <div class="row g-3 mb-4">
+        <Stat Label="New orders to confirm" Value="@stats.ToConfirm" Href="orders?status=new" />
+        <Stat Label="Waiting for a driver" Value="@stats.ToAssign" Href="orders?status=Confirmed" />
+        <Stat Label="Out for delivery" Value="@stats.OutForDelivery" Href="orders?status=OutForDelivery" />
+        <Stat Label="Delivered today" Value="@stats.DeliveredToday" />
+        <Stat Label="Sales today (₹)" Value="@stats.SalesToday.ToString("N0")" />
+        <Stat Label="Customer dues (₹)" Value="@stats.Dues.ToString("N0")" Href="customers" />
+        <Stat Label="Cans with customers" Value="@stats.CansOut" Href="customers" />
+        <Stat Label="Full cans in stock" Value="@stats.FullStock" Href="products" />
+    </div>
+}
+
+@code {
+    record Stats(int ToConfirm, int ToAssign, int OutForDelivery, int DeliveredToday, decimal SalesToday, decimal Dues, int CansOut, int FullStock);
+    Stats? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var today = DateTime.UtcNow.Date;
+        var newStatuses = new[] { OrderStatus.Placed, OrderStatus.Paid, OrderStatus.OnCredit };
+        stats = new Stats(
+            await db.Orders.CountAsync(o => newStatuses.Contains(o.Status)),
+            await db.Orders.CountAsync(o => o.Status == OrderStatus.Confirmed),
+            await db.Orders.CountAsync(o => o.Status == OrderStatus.OutForDelivery),
+            await db.Deliveries.CountAsync(d => d.DeliveredAt >= today),
+            await db.Invoices.Where(i => i.IssuedAt >= today).SumAsync(i => (decimal?)i.Amount) ?? 0,
+            await db.Customers.Where(c => c.Balance > 0).SumAsync(c => (decimal?)c.Balance) ?? 0,
+            await db.Customers.SumAsync(c => (int?)c.CansHeld) ?? 0,
+            await db.Products.Where(p => p.IsReturnable).SumAsync(p => (int?)p.StockFull) ?? 0);
+    }
+}

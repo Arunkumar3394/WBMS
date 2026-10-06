@@ -1,0 +1,62 @@
+@page "/drivers"
+@rendermode InteractiveServer
+
+<PageTitle>Drivers</PageTitle>
+<h3>Drivers</h3>
+
+@if (error is not null) { <div class="alert alert-danger">@error</div> }
+
+<div class="card card-body mb-3">
+    <div class="row g-2">
+        <div class="col-md-3"><input class="form-control" placeholder="Name" @bind="name" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Phone" @bind="phone" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Licence no" @bind="license" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Vehicle no" @bind="vehicle" /></div>
+        <div class="col-md-2"><input type="number" class="form-control" placeholder="Can capacity" title="Can capacity" @bind="capacity" /></div>
+        <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="Add">Add</button></div>
+    </div>
+</div>
+
+<table class="table table-sm">
+    <thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Capacity</th><th>Active orders</th><th>Delivered today</th></tr></thead>
+    <tbody>
+    @foreach (var d in drivers)
+    {
+        <tr>
+            <td>@d.Driver.User.Name</td><td>@d.Driver.User.Phone</td><td>@d.Driver.VehicleNo</td><td>@d.Driver.VehicleCapacity</td>
+            <td>@d.Active</td><td>@d.Today</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    record Row(Driver Driver, int Active, int Today);
+    List<Row> drivers = new();
+    string name = "", phone = "", license = "", vehicle = "";
+    int capacity;
+    string? error;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var today = DateTime.UtcNow.Date;
+        drivers = await db.Drivers.Include(d => d.User).Select(d => new Row(d,
+            db.Orders.Count(o => o.Delivery != null && o.Delivery.DriverId == d.Id && (o.Status == OrderStatus.Assigned || o.Status == OrderStatus.OutForDelivery)),
+            db.Deliveries.Count(x => x.DriverId == d.Id && x.DeliveredAt >= today))).ToListAsync();
+    }
+
+    async Task Add()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone)) { error = "Name and phone are required."; return; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Users.AnyAsync(u => u.Phone == phone)) { error = "That phone number is already registered."; return; }
+        db.Drivers.Add(new Driver { User = new AppUser { Name = name, Phone = phone, Role = UserRole.Driver }, LicenseNo = license, VehicleNo = vehicle, VehicleCapacity = capacity });
+        await db.SaveChangesAsync();
+        name = phone = license = vehicle = ""; capacity = 0;
+        await Load();
+    }
+}
