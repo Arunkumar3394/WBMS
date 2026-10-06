@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Wbms.Client.ViewModels;assembly=Wbms.Client"
+             x:Class="Wbms.Mobile.Pages.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Title="WBMS Water"
+             NavigationPage.HasNavigationBar="False">
+    <ScrollView>
+        <VerticalStackLayout Padding="24,60,24,24" Spacing="14">
+            <Label Text="💧 WBMS Water" Style="{StaticResource Title}" FontSize="28" HorizontalOptions="Center" />
+            <Label Text="Sign in with your mobile number" HorizontalOptions="Center" TextColor="{StaticResource Muted}" />
+
+            <!-- Step 1: phone (and sign-up details for new customers) -->
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding CodeSent, Converter={StaticResource Not}}">
+                <Entry Placeholder="Mobile number" Keyboard="Telephone" Text="{Binding Phone}" MaxLength="13" />
+
+                <VerticalStackLayout Spacing="12" IsVisible="{Binding Registering}">
+                    <Entry Placeholder="Your name" Text="{Binding Name}" />
+                    <Entry Placeholder="House / street" Text="{Binding AddressLine}" />
+                    <Entry Placeholder="Area" Text="{Binding Area}" />
+                </VerticalStackLayout>
+
+                <Button Text="Send code" Command="{Binding SendCodeCommand}" />
+                <Button Text="New customer? Sign up" BackgroundColor="Transparent" TextColor="{StaticResource Primary}"
+                        Command="{Binding ToggleRegisterCommand}" IsVisible="{Binding Registering, Converter={StaticResource Not}}" />
+                <Button Text="Already registered? Sign in" BackgroundColor="Transparent" TextColor="{StaticResource Primary}"
+                        Command="{Binding ToggleRegisterCommand}" IsVisible="{Binding Registering}" />
+            </VerticalStackLayout>
+
+            <!-- Step 2: SMS code -->
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding CodeSent}">
+                <Label Text="{Binding Phone, StringFormat='Enter the code sent to {0}'}" />
+                <Entry Placeholder="4-digit code" Keyboard="Numeric" MaxLength="4" Text="{Binding Code}" />
+                <Button Text="Sign in" Command="{Binding VerifyCommand}" />
+                <Button Text="Change number" BackgroundColor="Transparent" TextColor="{StaticResource Primary}" Command="{Binding ChangeNumberCommand}" />
+            </VerticalStackLayout>
+
+            <ActivityIndicator IsRunning="{Binding Busy}" IsVisible="{Binding Busy}" />
+            <Label Text="{Binding Error}" Style="{StaticResource Error}" IsVisible="{Binding Error, Converter={StaticResource HasValue}}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

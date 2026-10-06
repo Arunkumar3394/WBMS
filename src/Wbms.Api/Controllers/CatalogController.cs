@@ -8,7 +8,7 @@ using Wbms.Data.Services;
 
 namespace Wbms.Api.Controllers;
 
-public record ProfileDto(int UserId, string Name, string Phone, UserRole Role, decimal? Balance, decimal? CreditLimit, int? CansHeld, List<Address> Addresses);
+public record ProfileDto(int UserId, int? CustomerId, string Name, string Phone, UserRole Role, decimal? Balance, decimal? CreditLimit, int? CansHeld, List<Address> Addresses);
 
 [ApiController]
 [Route("api")]
@@ -29,7 +29,7 @@ public class CatalogController(WbmsDbContext db, OrderService orders) : Controll
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")!.Value);
         var u = await db.Users.AsNoTracking().FirstAsync(x => x.Id == userId);
         var c = await db.Customers.AsNoTracking().Include(x => x.Addresses).FirstOrDefaultAsync(x => x.UserId == userId);
-        return new ProfileDto(u.Id, u.Name, u.Phone, u.Role, c?.Balance, c?.CreditLimit, c?.CansHeld, c?.Addresses ?? new());
+        return new ProfileDto(u.Id, c?.Id, u.Name, u.Phone, u.Role, c?.Balance, c?.CreditLimit, c?.CansHeld, c?.Addresses ?? new());
     }
 
     [HttpPost("me/addresses")]

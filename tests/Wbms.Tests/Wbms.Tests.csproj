@@ -28,6 +28,7 @@
     <ProjectReference Include="..\..\src\Wbms.Core\Wbms.Core.csproj" />
     <ProjectReference Include="..\..\src\Wbms.Data\Wbms.Data.csproj" />
     <ProjectReference Include="..\..\src\Wbms.Api\Wbms.Api.csproj" />
+    <ProjectReference Include="..\..\src\Wbms.Client\Wbms.Client.csproj" />
   </ItemGroup>
 
 </Project>

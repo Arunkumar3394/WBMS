@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Wbms.Client.ViewModels;assembly=Wbms.Client"
+             xmlns:c="clr-namespace:Wbms.Client;assembly=Wbms.Client"
+             x:Class="Wbms.Mobile.Pages.DriverOrdersPage"
+             x:DataType="vm:DriverOrdersViewModel"
+             Title="My deliveries">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Sign out" Clicked="OnSignOut" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*" Padding="12">
+        <Label Text="{Binding Error}" Style="{StaticResource Error}" IsVisible="{Binding Error, Converter={StaticResource HasValue}}" />
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding Busy, Mode=OneWay}">
+            <CollectionView ItemsSource="{Binding Orders}" SelectionMode="Single" SelectionChanged="OnSelected">
+                <CollectionView.EmptyView>
+                    <Label Text="No deliveries assigned. Pull down to refresh." HorizontalOptions="Center" Margin="0,40" TextColor="{StaticResource Muted}" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="c:Order">
+                        <Border Style="{StaticResource Card}" Margin="0,6">
+                            <VerticalStackLayout Spacing="4">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding CustomerName}" FontAttributes="Bold" FontSize="17" />
+                                    <Label Grid.Column="1" Text="{Binding Status}" TextColor="{StaticResource Primary}" />
+                                </Grid>
+                                <Label Text="{Binding Address}" />
+                                <Label Text="{Binding ItemsText}" TextColor="{StaticResource Muted}" />
+                                <Label Text="{Binding Total, StringFormat='₹{0:N0}'}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>
