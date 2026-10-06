@@ -7,6 +7,8 @@ public class AppUser
     public string Phone { get; set; } = "";
     public string? Email { get; set; }
     public UserRole Role { get; set; }
+    /// <summary>Only staff and admins sign in with a password; customers and drivers use a phone OTP.</summary>
+    public string? PasswordHash { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -159,4 +161,15 @@ public class StockMovement
     public StockMovementType Type { get; set; }
     public int? OrderId { get; set; }
     public DateTime At { get; set; } = DateTime.UtcNow;
+}
+
+public class LoginOtp
+{
+    public int Id { get; set; }
+    public string Phone { get; set; } = "";
+    public string CodeHash { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public int Attempts { get; set; }
+    public bool Used { get; set; }
 }

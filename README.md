@@ -25,11 +25,17 @@ delivery completed → invoice and customer balance updated.
 3. Right-click the solution → *Configure Startup Projects* → start both `Wbms.Admin` and `Wbms.Api`.
 4. The API's Swagger page lists every endpoint.
 
+### Signing in
+
+- **Admin web:** phone `9000000000`, password `Admin@12345` (demo data, Development only). Change it on the *Account* page, and add staff on *Staff logins*.
+- **API / mobile app:** `POST /api/auth/request-otp` with a phone number, then `POST /api/auth/verify` with the code to get a token. In Development the code is printed in the API console. Demo phones: driver `9000000001`, customer `9000000002`. New customers sign up with `POST /api/auth/register`.
+- In Swagger, click *Authorize* and paste the token.
+- Production needs a real `Jwt:Key` (32+ characters) set as a secret or the `Jwt__Key` environment variable; the API refuses to start without one.
+
 Command line: `dotnet test`, `dotnet run --project src/Wbms.Admin`, `dotnet run --project src/Wbms.Api`.
 
 ## Not done yet
 
-- Login and roles (ASP.NET Identity + JWT). **Do not expose the API or admin to the internet until this is added.**
-- SMS for the OTP (currently printed to the API console by `ConsoleOtpSender`).
+- SMS for login and delivery OTPs (currently printed to the console by `ConsoleOtpSender`). **Needed before going live.**
 - Razorpay order creation from the app (the webhook that marks orders paid is in place; set `Razorpay:WebhookSecret`).
 - Invoice PDFs, reports, and the .NET MAUI mobile app.

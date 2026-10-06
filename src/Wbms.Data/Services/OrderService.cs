@@ -100,7 +100,7 @@ public class OrderService(WbmsDbContext db, IOtpSender otpSender)
         if (delivery.DriverId != driverId) throw new WorkflowException("This order is assigned to another driver.");
 
         var otp = Otp.Generate();
-        delivery.OtpHash = Otp.Hash(otp, delivery.Id);
+        delivery.OtpHash = Otp.Hash(otp, $"delivery:{delivery.Id}");
         delivery.StartedAt = DateTime.UtcNow;
         order.Status = OrderStatus.OutForDelivery;
         await db.SaveChangesAsync();
@@ -129,7 +129,7 @@ public class OrderService(WbmsDbContext db, IOtpSender otpSender)
         Require(order, OrderStatus.OutForDelivery);
         var d = order.Delivery!;
         if (d.DriverId != driverId) throw new WorkflowException("This order is assigned to another driver.");
-        if (!Otp.Verify(req.Otp, d.Id, d.OtpHash)) throw new WorkflowException("Wrong OTP.");
+        if (!Otp.Verify(req.Otp, $"delivery:{d.Id}", d.OtpHash)) throw new WorkflowException("Wrong OTP.");
         if (req.FullCansDelivered < 0 || req.EmptyCansCollected < 0 || req.CashCollected < 0)
             throw new WorkflowException("Counts and cash cannot be negative.");
 

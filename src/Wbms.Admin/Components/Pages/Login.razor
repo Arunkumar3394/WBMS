@@ -1,0 +1,61 @@
+@page "/login"
+@layout Wbms.Admin.Components.Layout.EmptyLayout
+@attribute [AllowAnonymous]
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Sign in · WBMS</PageTitle>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 100vh">
+    <div class="card shadow-sm" style="width: 360px">
+        <div class="card-body p-4">
+            <h4 class="mb-3">WBMS Admin</h4>
+            @if (error is not null) { <div class="alert alert-danger py-2">@error</div> }
+            <EditForm Model="Input" FormName="login" OnValidSubmit="SignIn" method="post">
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <InputText class="form-control" @bind-Value="Input.Phone" autocomplete="username" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" class="form-control" @bind-Value="Input.Password" autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Sign in</button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] HttpContext HttpContext { get; set; } = null!;
+    [SupplyParameterFromForm] LoginModel Input { get; set; } = new();
+    [SupplyParameterFromQuery] string? ReturnUrl { get; set; }
+    string? error;
+
+    class LoginModel { public string Phone { get; set; } = ""; public string Password { get; set; } = ""; }
+
+    async Task SignIn()
+    {
+        try
+        {
+            var u = await Auth.VerifyPasswordAsync(Input.Phone, Input.Password);
+            var identity = new ClaimsIdentity([
+                new Claim(ClaimTypes.NameIdentifier, u.UserId.ToString()),
+                new Claim(ClaimTypes.Name, u.Name),
+                new Claim(ClaimTypes.Role, u.Role.ToString())
+            ], CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        }
+        catch (WorkflowException ex)
+        {
+            error = ex.Message;
+            return;
+        }
+        // Only redirect inside this site.
+        var target = string.IsNullOrEmpty(ReturnUrl) || ReturnUrl.Contains("//") || ReturnUrl.Contains('\\') ? "" : ReturnUrl.TrimStart('/');
+        Nav.NavigateTo("/" + target);
+    }
+}

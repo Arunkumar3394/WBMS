@@ -2,7 +2,8 @@ using Wbms.Core.Entities;
 
 namespace Wbms.Api.Controllers;
 
-public record OrderDto(int Id, string OrderNo, int CustomerId, string CustomerName, string Address, OrderStatus Status,
+public record OrderDto(int Id, string OrderNo, int CustomerId, string CustomerName, string CustomerPhone, string Address,
+    double? AddressLat, double? AddressLng, OrderStatus Status,
     PaymentMode PaymentMode, decimal Total, DateOnly SlotDate, int? DriverId, string? DriverName, List<OrderItemDto> Items,
     double? DriverLat, double? DriverLng, string? InvoiceNo);
 public record OrderItemDto(int ProductId, string Product, int Qty, decimal UnitPrice);

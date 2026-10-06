@@ -12,6 +12,7 @@ namespace Wbms.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/razorpay")]
+[Microsoft.AspNetCore.Authorization.AllowAnonymous]
 public class RazorpayController(OrderService orders, IConfiguration config, ILogger<RazorpayController> logger) : ControllerBase
 {
     [HttpPost("webhook")]

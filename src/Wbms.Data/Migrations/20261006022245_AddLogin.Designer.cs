@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wbms.Data;
 
@@ -11,9 +12,11 @@ using Wbms.Data;
 namespace Wbms.Data.Migrations
 {
     [DbContext(typeof(WbmsDbContext))]
-    partial class WbmsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006022245_AddLogin")]
+    partial class AddLogin
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
