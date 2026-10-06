@@ -30,7 +30,7 @@ public class AuthService(WbmsDbContext db, IOtpSender otpSender)
         var code = Otp.Generate();
         db.LoginOtps.Add(new LoginOtp { Phone = phone, CodeHash = Otp.Hash(code, $"login:{phone}"), CreatedAt = now, ExpiresAt = now + OtpLifetime });
         await db.SaveChangesAsync();
-        await otpSender.SendAsync(user.Phone, code, "login");
+        await otpSender.SendAsync(user.Phone, code, OtpPurpose.Login);
     }
 
     public async Task<SignedInUser> VerifyLoginOtpAsync(string phone, string code)

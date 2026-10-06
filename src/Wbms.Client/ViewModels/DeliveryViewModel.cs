@@ -40,11 +40,31 @@ public partial class DeliveryViewModel(WbmsApi api, ILocationProvider location) 
         if (o.Status == OrderStatus.OutForDelivery) StartTracking();
     }
 
+    [ObservableProperty] private string? info;
+
     [RelayCommand]
     private Task Start() => Run(async () =>
     {
-        Order = await api.StartAsync(Order!.Id);
+        try
+        {
+            Order = await api.StartAsync(Order!.Id);
+        }
+        catch (ApiException)
+        {
+            // The trip may have started even if the SMS failed; show the real state so "Resend code" is available.
+            Order = await api.OrderAsync(Order!.Id);
+            if (Order.Status == OrderStatus.OutForDelivery) StartTracking();
+            throw;
+        }
         StartTracking();
+    });
+
+    [RelayCommand]
+    private Task ResendCode() => Run(async () =>
+    {
+        Info = null;
+        await api.ResendOtpAsync(Order!.Id);
+        Info = "New code sent to the customer.";
     });
 
     [RelayCommand]

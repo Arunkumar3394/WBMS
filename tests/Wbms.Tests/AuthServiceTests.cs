@@ -11,7 +11,7 @@ public class AuthServiceTests
     private class Inbox : IOtpSender
     {
         public string? Last;
-        public Task SendAsync(string phone, string otp, string orderNo) { Last = otp; return Task.CompletedTask; }
+        public Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null) { Last = otp; return Task.CompletedTask; }
     }
 
     private static (WbmsDbContext db, AuthService auth, Inbox sms) Setup()

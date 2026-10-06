@@ -13,7 +13,7 @@ public record ProfileDto(int UserId, int? CustomerId, string Name, string Phone,
 [ApiController]
 [Route("api")]
 [Authorize]
-public class CatalogController(WbmsDbContext db, OrderService orders) : ControllerBase
+public class CatalogController(WbmsDbContext db, OrderService orders, InvoicePdf invoicePdf) : ControllerBase
 {
     [HttpGet("products")]
     public Task<List<Product>> Products() => db.Products.AsNoTracking().Where(p => p.IsActive).ToListAsync();
@@ -72,6 +72,15 @@ public class CatalogController(WbmsDbContext db, OrderService orders) : Controll
     {
         if (!User.IsStaff() && User.GetCustomerId() != id) return Forbid();
         return await db.Invoices.AsNoTracking().Where(i => i.CustomerId == id).OrderByDescending(i => i.IssuedAt).ToListAsync();
+    }
+
+    /// <summary>Invoice as a PDF file, for its customer or staff.</summary>
+    [HttpGet("invoices/{id:int}/pdf")]
+    public async Task<IActionResult> InvoicePdf(int id)
+    {
+        var (pdf, fileName, customerId) = await invoicePdf.RenderAsync(id);
+        if (!User.IsStaff() && User.GetCustomerId() != customerId) return Forbid();
+        return File(pdf, "application/pdf", fileName);
     }
 
     [HttpGet("drivers")]

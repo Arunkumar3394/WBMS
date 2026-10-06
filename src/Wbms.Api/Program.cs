@@ -21,7 +21,10 @@ builder.Services.AddSingleton<TokenIssuer>();
 builder.Services.AddDbContext<WbmsDbContext>(o => o.UseSqlServer(builder.Configuration.GetConnectionString("Wbms")));
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddSingleton<IOtpSender, ConsoleOtpSender>();
+builder.Services.AddWbmsSms(builder.Configuration);
+builder.Services.AddWbmsInvoices(builder.Configuration);
+builder.Services.AddSingleton(builder.Configuration.GetSection("Razorpay").Get<Wbms.Api.Controllers.RazorpayOptions>() ?? new());
+builder.Services.AddHttpClient("razorpay", c => c.Timeout = TimeSpan.FromSeconds(20));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
 {

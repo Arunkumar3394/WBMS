@@ -11,7 +11,7 @@ public class OrderServiceTests
     private class CapturingSender : IOtpSender
     {
         public string? LastOtp;
-        public Task SendAsync(string phone, string otp, string orderNo) { LastOtp = otp; return Task.CompletedTask; }
+        public Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null) { LastOtp = otp; return Task.CompletedTask; }
     }
 
     private static (WbmsDbContext db, OrderService svc, CapturingSender sms) Setup()
@@ -111,5 +111,37 @@ public class OrderServiceTests
         var (db, svc, _) = Setup();
         var order = await svc.BookAsync(Booking(db, PaymentMode.Cash));
         await Assert.ThrowsAsync<WorkflowException>(() => svc.AssignAsync(order.Id, db.Drivers.First().Id));
+    }
+}
+
+public class DeliveryOtpResendTests
+{
+    private class Inbox : IOtpSender
+    {
+        public List<string> Codes = new();
+        public Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null) { Codes.Add(otp); return Task.CompletedTask; }
+    }
+
+    [Fact]
+    public async Task Resent_code_replaces_the_old_one()
+    {
+        var db = new WbmsDbContext(new DbContextOptionsBuilder<WbmsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+        SeedData.Ensure(db);
+        var sms = new Inbox();
+        var svc = new OrderService(db, sms);
+        var c = db.Customers.Include(x => x.Addresses).First();
+        var driver = db.Drivers.First();
+        var order = await svc.BookAsync(new BookOrderRequest(c.Id, c.Addresses[0].Id, PaymentMode.Cash, DateOnly.FromDateTime(DateTime.Today),
+            [new OrderLine(db.Products.First().Id, 1)], null));
+        await svc.ConfirmAsync(order.Id);
+        await svc.AssignAsync(order.Id, driver.Id);
+        await svc.StartDeliveryAsync(order.Id, driver.Id);
+        var first = sms.Codes[^1];
+        string second;
+        do { await svc.ResendDeliveryOtpAsync(order.Id, driver.Id); second = sms.Codes[^1]; } while (second == first);
+
+        await Assert.ThrowsAsync<WorkflowException>(() => svc.CompleteDeliveryAsync(order.Id, driver.Id, new CompleteDeliveryRequest(first, 1, 0, 40)));
+        order = await svc.CompleteDeliveryAsync(order.Id, driver.Id, new CompleteDeliveryRequest(second, 1, 0, 40));
+        Assert.Equal(OrderStatus.Completed, order.Status);
     }
 }

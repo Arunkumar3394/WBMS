@@ -1,0 +1,127 @@
+@page "/reports"
+@rendermode InteractiveServer
+
+<PageTitle>Reports</PageTitle>
+<h3>Reports</h3>
+
+<div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
+    <div><label class="form-label small">From</label><input type="date" class="form-control" @bind="from" /></div>
+    <div><label class="form-label small">To</label><input type="date" class="form-control" @bind="to" /></div>
+    <button class="btn btn-primary" @onclick="Load">Show</button>
+    <button class="btn btn-outline-secondary" @onclick="() => SetRange(0)">This month</button>
+    <button class="btn btn-outline-secondary" @onclick="() => SetRange(-1)">Last month</button>
+</div>
+
+@if (r is null) { <p>Loading…</p> }
+else
+{
+    <div class="row g-3 mb-4">
+        <Stat Label="Sales (₹)" Value="@r.Sales.ToString("N0")" />
+        <Stat Label="Collected (₹)" Value="@r.Collected.ToString("N0")" />
+        <Stat Label="Orders delivered" Value="@r.Delivered" />
+        <Stat Label="Cancelled orders" Value="@r.Cancelled" />
+        <Stat Label="Full cans delivered" Value="@r.CansOut" />
+        <Stat Label="Empty cans collected" Value="@r.CansIn" />
+        <Stat Label="Total dues today (₹)" Value="@r.DuesNow.ToString("N0")" />
+        <Stat Label="Cans with customers today" Value="@r.CansWithCustomers" />
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <h5>Collections by payment type</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Mode</th><th class="text-end">Payments</th><th class="text-end">Amount (₹)</th></tr></thead>
+                <tbody>
+                @foreach (var m in r.ByMode) { <tr><td>@m.Mode</td><td class="text-end">@m.Count</td><td class="text-end">@m.Amount.ToString("N0")</td></tr> }
+                </tbody>
+            </table>
+
+            <h5 class="mt-4">Drivers</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Driver</th><th class="text-end">Deliveries</th><th class="text-end">Cans out</th><th class="text-end">Empties in</th><th class="text-end">Cash (₹)</th></tr></thead>
+                <tbody>
+                @foreach (var d in r.ByDriver) { <tr><td>@d.Name</td><td class="text-end">@d.Deliveries</td><td class="text-end">@d.CansOut</td><td class="text-end">@d.CansIn</td><td class="text-end">@d.Cash.ToString("N0")</td></tr> }
+                </tbody>
+            </table>
+        </div>
+        <div class="col-lg-6">
+            <h5>Daily sales</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Date</th><th class="text-end">Invoices</th><th class="text-end">Sales (₹)</th></tr></thead>
+                <tbody>
+                @foreach (var d in r.Daily) { <tr><td>@d.Day.ToString("dd MMM, ddd")</td><td class="text-end">@d.Count</td><td class="text-end">@d.Amount.ToString("N0")</td></tr> }
+                </tbody>
+            </table>
+
+            <h5 class="mt-4">Highest dues</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Customer</th><th>Phone</th><th class="text-end">Due (₹)</th><th class="text-end">Cans held</th></tr></thead>
+                <tbody>
+                @foreach (var c in r.TopDues) { <tr><td>@c.Name</td><td>@c.Phone</td><td class="text-end text-danger">@c.Due.ToString("N0")</td><td class="text-end">@c.Cans</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    record ModeRow(PaymentMode Mode, int Count, decimal Amount);
+    record DriverRow(string Name, int Deliveries, int CansOut, int CansIn, decimal Cash);
+    record DayRow(DateTime Day, int Count, decimal Amount);
+    record DueRow(string Name, string Phone, decimal Due, int Cans);
+    record Report(decimal Sales, decimal Collected, int Delivered, int Cancelled, int CansOut, int CansIn, decimal DuesNow, int CansWithCustomers,
+        List<ModeRow> ByMode, List<DriverRow> ByDriver, List<DayRow> Daily, List<DueRow> TopDues);
+
+    DateTime from, to;
+    Report? r;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SetDates(0);
+        await Load();
+    }
+
+    void SetDates(int monthOffset)
+    {
+        var first = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(monthOffset);
+        from = first;
+        to = monthOffset == 0 ? DateTime.Today : first.AddMonths(1).AddDays(-1);
+    }
+
+    async Task SetRange(int monthOffset)
+    {
+        SetDates(monthOffset);
+        await Load();
+    }
+
+    async Task Load()
+    {
+        // Dates are stored in UTC; the range is taken in server-local days.
+        var start = from.Date.ToUniversalTime();
+        var end = to.Date.AddDays(1).ToUniversalTime();
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var invoices = await db.Invoices.Where(i => i.IssuedAt >= start && i.IssuedAt < end).Select(i => new { i.IssuedAt, i.Amount }).ToListAsync();
+        var payments = await db.Payments.Where(p => p.At >= start && p.At < end).Select(p => new { p.Mode, p.Amount }).ToListAsync();
+        var deliveries = await db.Deliveries.Where(d => d.DeliveredAt >= start && d.DeliveredAt < end)
+            .Select(d => new { d.Driver.User.Name, d.FullCansDelivered, d.EmptyCansCollected, d.CashCollected }).ToListAsync();
+        var cancelled = await db.Orders.CountAsync(o => o.Status == OrderStatus.Cancelled && o.CreatedAt >= start && o.CreatedAt < end);
+        var topDues = await db.Customers.Where(c => c.Balance > 0).OrderByDescending(c => c.Balance).Take(15)
+            .Select(c => new DueRow(c.User.Name, c.User.Phone, c.Balance, c.CansHeld)).ToListAsync();
+
+        r = new Report(
+            invoices.Sum(i => i.Amount),
+            payments.Sum(p => p.Amount),
+            deliveries.Count,
+            cancelled,
+            deliveries.Sum(d => d.FullCansDelivered),
+            deliveries.Sum(d => d.EmptyCansCollected),
+            await db.Customers.Where(c => c.Balance > 0).SumAsync(c => (decimal?)c.Balance) ?? 0,
+            await db.Customers.SumAsync(c => (int?)c.CansHeld) ?? 0,
+            payments.GroupBy(p => p.Mode).Select(g => new ModeRow(g.Key, g.Count(), g.Sum(p => p.Amount))).OrderByDescending(m => m.Amount).ToList(),
+            deliveries.GroupBy(d => d.Name).Select(g => new DriverRow(g.Key, g.Count(), g.Sum(d => d.FullCansDelivered), g.Sum(d => d.EmptyCansCollected), g.Sum(d => d.CashCollected)))
+                .OrderByDescending(d => d.Deliveries).ToList(),
+            invoices.GroupBy(i => i.IssuedAt.ToLocalTime().Date).Select(g => new DayRow(g.Key, g.Count(), g.Sum(i => i.Amount))).OrderByDescending(d => d.Day).ToList(),
+            topDues);
+    }
+}

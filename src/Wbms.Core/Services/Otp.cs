@@ -18,17 +18,22 @@ public static class Otp
 
 public class WorkflowException(string message) : Exception(message);
 
-/// <summary>Sends the delivery OTP to the customer. Replace the console sender with an SMS provider.</summary>
+public enum OtpPurpose { Login, Delivery }
+
+/// <summary>Texts a one-time code. ConsoleOtpSender prints it (development); Msg91OtpSender sends a real SMS.</summary>
 public interface IOtpSender
 {
-    Task SendAsync(string phone, string otp, string orderNo);
+    /// <param name="orderNo">The order the code is for; null for login codes.</param>
+    Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null);
 }
 
 public class ConsoleOtpSender : IOtpSender
 {
-    public Task SendAsync(string phone, string otp, string orderNo)
+    public Task SendAsync(string phone, string otp, OtpPurpose purpose, string? orderNo = null)
     {
-        Console.WriteLine($"[OTP] {phone}: your WBMS delivery code for {orderNo} is {otp}");
+        Console.WriteLine(purpose == OtpPurpose.Login
+            ? $"[OTP] {phone}: your WBMS login code is {otp}"
+            : $"[OTP] {phone}: your WBMS delivery code for {orderNo} is {otp}");
         return Task.CompletedTask;
     }
 }

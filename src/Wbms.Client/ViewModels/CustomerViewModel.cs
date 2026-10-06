@@ -10,8 +10,13 @@ public partial class CustomerViewModel(WbmsApi api) : BaseViewModel
     [ObservableProperty] private Profile? profile;
     [ObservableProperty] private Product? selectedProduct;
     [ObservableProperty] private int quantity = 2;
-    [ObservableProperty] private bool payOnCredit;
+    /// <summary>0 = cash on delivery, 1 = add to my account (credit), 2 = pay online now (Razorpay).</summary>
+    [ObservableProperty] private int paymentChoice;
+    public IReadOnlyList<string> PaymentChoices { get; } = ["Cash on delivery", "Add to my account (credit)", "Pay online now (UPI / card)"];
     [ObservableProperty] private string? message;
+
+    /// <summary>Raised with a Razorpay payment page to open in the browser.</summary>
+    public event Action<Uri>? OpenPayment;
 
     public ObservableCollection<Product> Products { get; } = new();
     public ObservableCollection<Order> Orders { get; } = new();
@@ -39,11 +44,21 @@ public partial class CustomerViewModel(WbmsApi api) : BaseViewModel
         if (SelectedProduct is null || Quantity <= 0) throw new ApiException("Choose a product and quantity.", 0);
         var address = Profile?.Addresses.FirstOrDefault(a => a.IsDefault) ?? Profile?.Addresses.FirstOrDefault()
             ?? throw new ApiException("Add a delivery address first.", 0);
-        var order = await api.BookAsync(new BookRequest(address.Id, PayOnCredit ? PaymentMode.Credit : PaymentMode.Cash,
+        var mode = PaymentChoice switch { 1 => PaymentMode.Credit, 2 => PaymentMode.Razorpay, _ => PaymentMode.Cash };
+        var order = await api.BookAsync(new BookRequest(address.Id, mode,
             DateOnly.FromDateTime(DateTime.Today), [new OrderLine(SelectedProduct.Id, Quantity)], null));
-        Message = $"Order {order.OrderNo} booked. We'll confirm it shortly.";
         await ReloadOrders();
+        if (mode == PaymentMode.Razorpay)
+        {
+            Message = $"Order {order.OrderNo} booked. Complete the payment to confirm it.";
+            OpenPayment?.Invoke(await api.PaymentLinkAsync(order.Id));
+        }
+        else Message = $"Order {order.OrderNo} booked. We'll confirm it shortly.";
     });
+
+    /// <summary>Pay for an order that is still waiting for online payment.</summary>
+    [RelayCommand]
+    private Task PayOnline(Order order) => Run(async () => OpenPayment?.Invoke(await api.PaymentLinkAsync(order.Id)));
 
     [RelayCommand]
     private Task Cancel(Order order) => Run(async () =>
