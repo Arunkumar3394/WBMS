@@ -1,0 +1,92 @@
+@page "/products"
+@rendermode InteractiveServer
+
+<PageTitle>Products & Stock</PageTitle>
+<h3>Products & Stock</h3>
+
+<div class="card card-body mb-3">
+    <div class="row g-2">
+        <div class="col-md-4"><input class="form-control" placeholder="Name (e.g. 20 L Can)" @bind="name" /></div>
+        <div class="col-md-2"><input type="number" class="form-control" placeholder="Price" @bind="price" /></div>
+        <div class="col-md-2 form-check d-flex align-items-center gap-2 ps-4"><input type="checkbox" class="form-check-input" @bind="returnable" id="ret" /><label for="ret">Returnable can</label></div>
+        <div class="col-md-2"><button class="btn btn-primary w-100" @onclick="Add">Add product</button></div>
+    </div>
+</div>
+
+<table class="table table-sm align-middle">
+    <thead><tr><th>Product</th><th>Price (₹)</th><th>Returnable</th><th>Full stock</th><th>Add filled stock</th><th>Active</th></tr></thead>
+    <tbody>
+    @foreach (var p in products)
+    {
+        <tr>
+            <td>@p.Name</td>
+            <td><input type="number" class="form-control form-control-sm" style="max-width:100px" value="@p.Price" @onchange="e => SetPrice(p.Id, e.Value)" /></td>
+            <td>@(p.IsReturnable ? "Yes" : "No")</td>
+            <td>@p.StockFull</td>
+            <td>
+                <div class="input-group input-group-sm" style="max-width: 200px">
+                    <input type="number" class="form-control" @bind="fill[p.Id]" />
+                    <button class="btn btn-outline-success" @onclick="() => Fill(p.Id)">Add</button>
+                </div>
+            </td>
+            <td><input type="checkbox" class="form-check-input" checked="@p.IsActive" @onchange="e => SetActive(p.Id, (bool)e.Value!)" /></td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    List<Product> products = new();
+    Dictionary<int, int> fill = new();
+    string name = "";
+    decimal price;
+    bool returnable = true;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        products = await db.Products.OrderBy(p => p.Name).ToListAsync();
+        foreach (var p in products) fill.TryAdd(p.Id, 0);
+    }
+
+    async Task Add()
+    {
+        if (string.IsNullOrWhiteSpace(name) || price <= 0) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        db.Products.Add(new Product { Name = name, Price = price, IsReturnable = returnable });
+        await db.SaveChangesAsync();
+        name = ""; price = 0;
+        await Load();
+    }
+
+    async Task Fill(int id)
+    {
+        if (fill[id] <= 0) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var p = await db.Products.FindAsync(id);
+        p!.StockFull += fill[id];
+        db.StockMovements.Add(new StockMovement { ProductId = id, Qty = fill[id], Type = StockMovementType.Filled });
+        await db.SaveChangesAsync();
+        fill[id] = 0;
+        await Load();
+    }
+
+    async Task SetPrice(int id, object? value)
+    {
+        if (!decimal.TryParse(value?.ToString(), out var v) || v <= 0) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        (await db.Products.FindAsync(id))!.Price = v;
+        await db.SaveChangesAsync();
+        await Load();
+    }
+
+    async Task SetActive(int id, bool active)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        (await db.Products.FindAsync(id))!.IsActive = active;
+        await db.SaveChangesAsync();
+        await Load();
+    }
+}

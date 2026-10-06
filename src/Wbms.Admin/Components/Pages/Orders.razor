@@ -1,0 +1,163 @@
+@page "/orders"
+@rendermode InteractiveServer
+@inject IOtpSender OtpSender
+
+<PageTitle>Orders</PageTitle>
+<h3>Orders</h3>
+
+<div class="d-flex gap-2 mb-3 align-items-center">
+    <select class="form-select w-auto" @bind="Status" @bind:after="Load">
+        <option value="">All open</option>
+        <option value="new">New (to confirm)</option>
+        @foreach (var s in Enum.GetValues<OrderStatus>()) { <option value="@s">@s</option> }
+    </select>
+    <button class="btn btn-primary ms-auto" @onclick="() => showBook = !showBook">+ Phone order</button>
+</div>
+
+@if (error is not null) { <div class="alert alert-danger">@error</div> }
+
+@if (showBook)
+{
+    <div class="card card-body mb-3">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Customer</label>
+                <select class="form-select" @bind="bookCustomerId">
+                    <option value="0">Choose…</option>
+                    @foreach (var c in customers) { <option value="@c.Id">@c.User.Name (@c.User.Phone)</option> }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Product</label>
+                <select class="form-select" @bind="bookProductId">
+                    @foreach (var p in products) { <option value="@p.Id">@p.Name (₹@p.Price)</option> }
+                </select>
+            </div>
+            <div class="col-md-1"><label class="form-label">Qty</label><input type="number" class="form-control" @bind="bookQty" /></div>
+            <div class="col-md-2">
+                <label class="form-label">Payment</label>
+                <select class="form-select" @bind="bookMode">
+                    <option value="@PaymentMode.Cash">Cash</option>
+                    <option value="@PaymentMode.Credit">Credit</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100" @onclick="Book">Book</button></div>
+        </div>
+    </div>
+}
+
+<table class="table table-sm align-middle">
+    <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Pay</th><th>Status</th><th>Driver</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var o in orders)
+    {
+        <tr>
+            <td>@o.OrderNo<div class="small text-muted">@o.SlotDate</div></td>
+            <td>@o.Customer.User.Name<div class="small text-muted">@o.Address.Line, @o.Address.Area</div></td>
+            <td>@string.Join(", ", o.Items.Select(i => $"{i.Qty} × {i.Product.Name}"))</td>
+            <td>₹@o.Total.ToString("N0")</td>
+            <td>@o.PaymentMode</td>
+            <td><span class="badge bg-@Badge(o.Status)">@o.Status</span></td>
+            <td>
+                @if (o.Status is OrderStatus.Confirmed or OrderStatus.Assigned)
+                {
+                    <select class="form-select form-select-sm" value="@(o.Delivery?.DriverId ?? 0)" @onchange="e => Assign(o.Id, e.Value)">
+                        <option value="0">Assign…</option>
+                        @foreach (var d in drivers) { <option value="@d.Id">@d.User.Name</option> }
+                    </select>
+                }
+                else { @o.Delivery?.Driver.User.Name }
+            </td>
+            <td class="text-nowrap">
+                @if (o.Status is OrderStatus.Placed or OrderStatus.Paid or OrderStatus.OnCredit)
+                {
+                    <button class="btn btn-sm btn-success" @onclick="() => Run(s => s.ConfirmAsync(o.Id))">Confirm</button>
+                }
+                @if (o.Status is not (OrderStatus.OutForDelivery or OrderStatus.Delivered or OrderStatus.Completed or OrderStatus.Cancelled))
+                {
+                    <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => Run(s => s.CancelAsync(o.Id))">Cancel</button>
+                }
+                @if (o.Delivery?.LastLat is not null && o.Status == OrderStatus.OutForDelivery)
+                {
+                    <a class="btn btn-sm btn-outline-primary ms-1" target="_blank" href="https://maps.google.com/?q=@o.Delivery.LastLat,@o.Delivery.LastLng">Map</a>
+                }
+                @if (o.Invoice is not null) { <span class="small text-muted ms-1">@o.Invoice.InvoiceNo (@o.Invoice.Status)</span> }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    [SupplyParameterFromQuery(Name = "status")] public string? Status { get; set; }
+    List<Order> orders = new();
+    List<Driver> drivers = new();
+    List<Customer> customers = new();
+    List<Product> products = new();
+    string? error;
+    bool showBook;
+    int bookCustomerId, bookProductId, bookQty = 1;
+    PaymentMode bookMode = PaymentMode.Cash;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        drivers = await db.Drivers.Include(d => d.User).ToListAsync();
+        customers = await db.Customers.Include(c => c.User).Include(c => c.Addresses).ToListAsync();
+        products = await db.Products.Where(p => p.IsActive).ToListAsync();
+        bookProductId = products.FirstOrDefault()?.Id ?? 0;
+        await Load();
+    }
+
+    async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        IQueryable<Order> q = db.Orders.Include(o => o.Customer).ThenInclude(c => c.User).Include(o => o.Address)
+            .Include(o => o.Items).ThenInclude(i => i.Product).Include(o => o.Delivery).ThenInclude(d => d!.Driver).ThenInclude(d => d.User)
+            .Include(o => o.Invoice);
+        q = Status switch
+        {
+            null or "" => q.Where(o => o.Status != OrderStatus.Completed && o.Status != OrderStatus.Cancelled),
+            "new" => q.Where(o => o.Status == OrderStatus.Placed || o.Status == OrderStatus.Paid || o.Status == OrderStatus.OnCredit),
+            _ when Enum.TryParse<OrderStatus>(Status, out var s) => q.Where(o => o.Status == s),
+            _ => q
+        };
+        orders = await q.OrderByDescending(o => o.CreatedAt).Take(300).ToListAsync();
+    }
+
+    async Task Run(Func<OrderService, Task> action)
+    {
+        error = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await action(new OrderService(db, OtpSender));
+        }
+        catch (WorkflowException ex) { error = ex.Message; }
+        await Load();
+    }
+
+    Task Assign(int orderId, object? value) =>
+        int.TryParse(value?.ToString(), out var driverId) && driverId > 0 ? Run(s => s.AssignAsync(orderId, driverId)) : Task.CompletedTask;
+
+    async Task Book()
+    {
+        var c = customers.FirstOrDefault(x => x.Id == bookCustomerId);
+        if (c is null) { error = "Choose a customer."; return; }
+        var address = c.Addresses.FirstOrDefault(a => a.IsDefault) ?? c.Addresses.FirstOrDefault();
+        if (address is null) { error = "Customer has no address."; return; }
+        await Run(s => s.BookAsync(new BookOrderRequest(c.Id, address.Id, bookMode, DateOnly.FromDateTime(DateTime.Today),
+            [new OrderLine(bookProductId, bookQty)], "Phone order")));
+        if (error is null) showBook = false;
+    }
+
+    static string Badge(OrderStatus s) => s switch
+    {
+        OrderStatus.Placed or OrderStatus.Paid or OrderStatus.OnCredit => "warning text-dark",
+        OrderStatus.PaymentPending => "secondary",
+        OrderStatus.Confirmed or OrderStatus.Assigned => "info text-dark",
+        OrderStatus.OutForDelivery => "primary",
+        OrderStatus.Delivered or OrderStatus.Completed => "success",
+        _ => "danger"
+    };
+}

@@ -1,0 +1,92 @@
+@page "/customers"
+@rendermode InteractiveServer
+@inject IOtpSender OtpSender
+
+<PageTitle>Customers</PageTitle>
+<h3>Customers</h3>
+
+@if (error is not null) { <div class="alert alert-danger">@error</div> }
+
+<div class="card card-body mb-3">
+    <div class="row g-2">
+        <div class="col-md-2"><input class="form-control" placeholder="Name" @bind="name" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Phone" @bind="phone" /></div>
+        <div class="col-md-3"><input class="form-control" placeholder="Address" @bind="line" /></div>
+        <div class="col-md-2"><input class="form-control" placeholder="Area" @bind="area" /></div>
+        <div class="col-md-1"><select class="form-select" @bind="type">@foreach (var t in Enum.GetValues<CustomerType>()) { <option value="@t">@t</option> }</select></div>
+        <div class="col-md-1"><input type="number" class="form-control" placeholder="Credit limit" title="Credit limit" @bind="creditLimit" /></div>
+        <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="Add">Add</button></div>
+    </div>
+</div>
+
+<table class="table table-sm align-middle">
+    <thead><tr><th>Name</th><th>Phone</th><th>Type</th><th>Address</th><th>Cans held</th><th>Credit limit</th><th>Dues (₹)</th><th>Record payment</th></tr></thead>
+    <tbody>
+    @foreach (var c in customers)
+    {
+        <tr>
+            <td>@c.User.Name</td>
+            <td>@c.User.Phone</td>
+            <td>@c.Type</td>
+            <td>@string.Join("; ", c.Addresses.Select(a => $"{a.Line}, {a.Area}"))</td>
+            <td>@c.CansHeld</td>
+            <td>₹@c.CreditLimit.ToString("N0")</td>
+            <td class="@(c.Balance > 0 ? "text-danger fw-semibold" : "")">@c.Balance.ToString("N0")</td>
+            <td>
+                <div class="input-group input-group-sm" style="max-width: 220px">
+                    <input type="number" class="form-control" @bind="settle[c.Id]" />
+                    <button class="btn btn-outline-success" @onclick="() => Settle(c.Id)">Paid</button>
+                </div>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    List<Customer> customers = new();
+    Dictionary<int, decimal> settle = new();
+    string name = "", phone = "", line = "", area = "";
+    CustomerType type;
+    decimal creditLimit;
+    string? error;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        customers = await db.Customers.Include(c => c.User).Include(c => c.Addresses).OrderBy(c => c.User.Name).ToListAsync();
+        foreach (var c in customers) settle.TryAdd(c.Id, 0);
+    }
+
+    async Task Add()
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone)) { error = "Name and phone are required."; return; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        if (await db.Users.AnyAsync(u => u.Phone == phone)) { error = "That phone number is already registered."; return; }
+        db.Customers.Add(new Customer
+        {
+            User = new AppUser { Name = name, Phone = phone, Role = UserRole.Customer },
+            Type = type, CreditLimit = creditLimit,
+            Addresses = { new Address { Line = line, Area = area, IsDefault = true } }
+        });
+        await db.SaveChangesAsync();
+        name = phone = line = area = ""; creditLimit = 0;
+        await Load();
+    }
+
+    async Task Settle(int customerId)
+    {
+        error = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await new OrderService(db, OtpSender).SettleDuesAsync(customerId, settle[customerId], PaymentMode.Cash, "Office");
+            settle[customerId] = 0;
+        }
+        catch (WorkflowException ex) { error = ex.Message; }
+        await Load();
+    }
+}
