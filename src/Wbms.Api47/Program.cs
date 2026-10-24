@@ -41,6 +41,7 @@ public static class Program
     public static void PrepareDatabase(WbmsServices services)
     {
         using var db = services.CreateDb();
+        WbmsMigrations.UseFor(db);
         db.Database.Initialize(false);
         if (AppConfig.GetBool("Seed:DemoData", false)) SeedData.Ensure(db);
         SeedData.EnsureFirstAdmin(db, AppConfig.Get("Setup:AdminPhone"), AppConfig.Get("Setup:AdminPassword"));

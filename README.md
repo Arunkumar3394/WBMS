@@ -59,6 +59,7 @@ All settings are in `src/Wbms.Api47/App.config` (`<appSettings>`). Put secrets i
 | `Razorpay:KeyId`, `Razorpay:KeySecret`, `Razorpay:WebhookSecret` | Online payment. In the Razorpay dashboard add a webhook to `https://<your-site>/api/razorpay/webhook` for `payment_link.paid` and `payment.captured` |
 | `Razorpay:CallbackUrl` | Where customers return after paying, e.g. `https://<your-site>/orders/{orderId}` |
 | `Business:Name`, `Address`, `Phone`, `Gstin` | Printed on invoice PDFs |
+| `Db:Postgres` | A Postgres connection string (for example Supabase). When set, WBMS uses Postgres instead of the SQL Server connection string and creates its tables in a `dbo` schema |
 | `Seed:DemoData` | Set to `false` before real use (the server package already does) |
 | `Setup:AdminPhone`, `Setup:AdminPassword` | Creates the first admin on a database that has none. Clear them after signing in |
 | `Web:Url` | Address the API listens on, e.g. `http://+:80/` on a server |
