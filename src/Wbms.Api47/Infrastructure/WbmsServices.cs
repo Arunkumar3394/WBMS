@@ -70,7 +70,13 @@ public class WbmsServices
             s.OtpSender = new Msg91OtpSender(s.Http, msg91);
         }
 
-        if (AppConfig.GetBool("Db:InMemory", false))
+        var postgres = AppConfig.Get("Db:Postgres");
+        if (postgres != "")
+        {
+            // Postgres, e.g. Supabase. A setting rather than a connection string so Azure application settings can supply it.
+            s.CreateDb = () => new WbmsDb(new Npgsql.NpgsqlConnection(postgres), true);
+        }
+        else if (AppConfig.GetBool("Db:InMemory", false))
         {
             // Demo mode without SQL Server: data lives in memory and is lost on restart.
             var id = Guid.NewGuid().ToString();

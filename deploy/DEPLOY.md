@@ -6,7 +6,7 @@ Pick one of the three places below; the package and the settings are the same fo
 | | Monthly cost (approx.) | Good for |
 |---|---|---|
 | **A. Windows VPS** (recommended) | ₹1,500–3,000 | Full control, SQL Server Express on the same machine for free |
-| **B. Azure App Service** | ₹1,100+ (Basic B1) plus Azure SQL ₹400+ | No server to look after |
+| **B. Azure App Service** | ₹1,100+ (Basic B1); database free on Supabase | No server to look after |
 | **C. Your own PC or office server** | Electricity + a static IP | Trying it out; the PC must stay on |
 
 ## 1. Build the package (on your PC)
@@ -31,7 +31,9 @@ Open `Web.config` on the server in Notepad and fill in these values in `<appSett
 | `Razorpay:CallbackUrl` | `https://<your-domain>/orders/{orderId}` |
 | `Business:Name`, `Address`, `Phone`, `Gstin` | Printed on invoices |
 
-The database connection is under `<connectionStrings>` (`Wbms`). The default, `Server=.\SQLEXPRESS;Database=Wbms;Trusted_Connection=True`, fits option A. The database and its tables are created on the first start.
+For a **Postgres database such as Supabase**, put its connection string in `Db:Postgres` (see option B); the SQL Server connection below is then ignored.
+
+The SQL Server connection is under `<connectionStrings>` (`Wbms`). The default, `Server=.\SQLEXPRESS;Database=Wbms;Trusted_Connection=True`, fits option A. The database and its tables are created on the first start.
 
 Demo accounts are switched off in the package (`Seed:DemoData` = `false`), and the development signing key is blanked.
 
@@ -65,10 +67,17 @@ Drivers' live location only works on `https://`, so give drivers and customers t
 ## Option B: Azure App Service
 
 1. In the Azure portal create a **Web App**: publish *Code*, runtime stack **ASP.NET V4.8**, operating system **Windows**, plan **Basic B1** or higher (needed for a custom domain with SSL).
-2. Create an **Azure SQL Database** (Basic tier is enough). Under *Networking* allow Azure services to access the server.
-3. In the Web App → *Settings* → *Environment variables*:
-   - *App settings*: add `Jwt:Key`, `Setup:AdminPhone`, `Setup:AdminPassword`, `Sms:Provider`, the `Msg91:*`, `Razorpay:*` and `Business:*` values (same names as section 2). These override `Web.config`, so you never edit files on Azure.
-   - *Connection strings*: name `Wbms`, type **SQLAzure**, value = the ADO.NET connection string of your Azure SQL database (with its password).
+2. **Database on Supabase.** In your Supabase project → **Connect** (top bar) → *Connection string* → choose **.NET** and the **Session pooler** (Azure needs the pooler; the direct connection is IPv6 only). You get something like
+   `User Id=postgres.<project-ref>;Password=[YOUR-PASSWORD];Server=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgres`.
+   Replace `[YOUR-PASSWORD]` with your database password (reset it under *Project Settings → Database* if you don't have it) and add `;SSL Mode=Require;Trust Server Certificate=true` at the end.
+   WBMS creates its tables in a separate `dbo` schema on the first start, so they don't mix with Supabase's own tables and aren't exposed through Supabase's public API.
+3. In the Web App → *Settings* → *Environment variables* → *App settings*, add:
+   - `Db:Postgres` = the Supabase connection string from step 2
+   - `Jwt:Key`, `Setup:AdminPhone`, `Setup:AdminPassword`, `Sms:Provider`, the `Msg91:*`, `Razorpay:*` and `Business:*` values (same names as section 2)
+
+   These override `Web.config`, so you never edit files on Azure.
+
+   (To use Azure SQL instead of Supabase: leave out `Db:Postgres` and add a *Connection string* named `Wbms`, type **SQLAzure**.)
 4. Upload the site, either way:
    - **From GitHub (no build on your PC):**
      1. Web App → *Settings* → *Configuration* → *General settings*: turn **SCM Basic Auth Publishing Credentials** on and save.
@@ -108,13 +117,15 @@ Back up the database regularly. For SQL Server Express, schedule this in Task Sc
 sqlcmd -S .\SQLEXPRESS -E -Q "BACKUP DATABASE Wbms TO DISK='C:\Backups\Wbms.bak' WITH INIT"
 ```
 
-and copy `C:\Backups` somewhere off the server. Azure SQL keeps automatic backups.
+and copy `C:\Backups` somewhere off the server. Supabase backs up its database daily (Pro plan; on the free plan download a backup from *Database → Backups* now and then). Azure SQL keeps automatic backups.
 
 ## If the site shows an error
 
 - *Server Error / 500 on every page:* the message is shown when you browse the site **on the server itself** (Remote Desktop). Common causes:
   - "Jwt:Key is still the development key" or "Set Jwt:Key": fill in your own key.
   - "Cannot open database" / "Login failed for user IIS APPPOOL\wbms": run step 6 of option A.
+  - "password authentication failed" or "No such host is known" with Supabase: check the password in `Db:Postgres` and that you copied the **Session pooler** string.
+  - On Azure, open *Log stream* or *Diagnose and solve problems* in the Web App to see the error.
   - "Sms:Provider is Msg91 but ... is missing": fill in all three Msg91 values.
 - *403 or a directory listing:* the application pool is not .NET v4.0 / Integrated, or ASP.NET 4.8 is not installed (option A step 2).
 - After changing `Web.config` the site restarts by itself; there is nothing else to restart.
