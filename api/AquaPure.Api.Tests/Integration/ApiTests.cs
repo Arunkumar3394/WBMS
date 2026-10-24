@@ -104,6 +104,18 @@ namespace AquaPure.Api.Tests.Integration
         }
 
         [Fact]
+        public async Task An_expired_token_401_still_has_CORS_headers_so_the_site_can_refresh()
+        {
+            var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, "http://localhost/api/me");
+            request.Headers.Add("Origin", "http://localhost:4200");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _f.Token(Customer, DateTime.UtcNow.AddMinutes(-10)));
+            var response = await _f.Client().SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins));
+            Assert.Equal("http://localhost:4200", origins.Single());
+        }
+
+        [Fact]
         public async Task Customers_cannot_use_staff_or_admin_endpoints()
         {
             var c = _f.Client(Customer);

@@ -114,3 +114,104 @@ export interface Address {
 }
 
 export type AddressInput = Omit<Address, 'id'>;
+
+// ---------- Orders ----------
+export type OrderStatus = 'pending' | 'confirmed' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type PaymentMethod = 'cod' | 'razorpay';
+export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
+
+export interface QuoteLine {
+  product_id: number;
+  product_name: string;
+  unit_label: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+  deposit_qty: number;
+  deposit_total: number;
+}
+
+/** Prices worked out by the server for a cart and address. */
+export interface Quote {
+  zone_name: string;
+  min_order_amount: number;
+  free_delivery_min: number | null;
+  lines: QuoteLine[];
+  subtotal: number;
+  delivery_charge: number;
+  deposit_total: number;
+  total: number;
+}
+
+export interface OrderItemInput {
+  product_id: number;
+  quantity: number;
+}
+
+export interface PlaceOrderRequest {
+  address_id: string;
+  items: OrderItemInput[];
+  delivery_date: string;
+  slot_id: number;
+  payment_method: PaymentMethod;
+  notes: string | null;
+  idempotency_key: string;
+}
+
+export interface OrderSummary {
+  id: string;
+  order_no: string;
+  status: OrderStatus;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  total: number;
+  delivery_date: string;
+  slot_label: string;
+  created_at: string;
+  item_count: number;
+}
+
+export interface OrderDetail extends Omit<OrderSummary, 'item_count'> {
+  delivery_address: Omit<AddressInput, 'is_default'>;
+  zone_id: number | null;
+  slot_id: number | null;
+  subtotal: number;
+  delivery_charge: number;
+  deposit_total: number;
+  customer_notes: string | null;
+  cancel_reason: string | null;
+  cans_delivered: number | null;
+  empties_collected: number | null;
+  confirmed_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  items: (QuoteLine & { product_id: number | null })[];
+  history: { from_status: OrderStatus | null; to_status: OrderStatus; note: string | null; created_at: string }[];
+  payments: {
+    provider: string;
+    status: string;
+    method: string | null;
+    amount: number;
+    razorpay_payment_id: string | null;
+    error_description: string | null;
+    created_at: string;
+    captured_at: string | null;
+  }[];
+}
+
+// ---------- Razorpay ----------
+export interface RazorpayCheckout {
+  key_id: string;
+  razorpay_order_id: string;
+  amount_paise: number;
+  currency: string;
+  order_id: string;
+  order_no: string;
+  prefill: { name: string | null; email: string | null; contact: string | null };
+}
+
+export interface RazorpaySuccess {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}

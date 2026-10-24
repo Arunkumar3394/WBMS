@@ -37,6 +37,7 @@ export default defineConfig({
     baseURL: process.env['E2E_BASE_URL'] ?? 'http://localhost:4300',
     channel: 'chrome', // uses the installed Google Chrome
     trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
     launchOptions: { args: supabaseHostRule() },
   },
   webServer: process.env['E2E_BASE_URL'] ? undefined : {
@@ -45,8 +46,10 @@ export default defineConfig({
     reuseExistingServer: true,
   },
   projects: [
-    { name: 'phone', use: { viewport: { width: 375, height: 740 }, isMobile: true, hasTouch: true } },
-    { name: 'tablet', use: { viewport: { width: 768, height: 1024 } } },
-    { name: 'desktop', use: { viewport: { width: 1280, height: 800 } } },
+    { name: 'phone', testIgnore: /fullstack/, use: { viewport: { width: 375, height: 740 }, isMobile: true, hasTouch: true } },
+    { name: 'tablet', testIgnore: /fullstack/, use: { viewport: { width: 768, height: 1024 } } },
+    { name: 'desktop', testIgnore: /fullstack/, use: { viewport: { width: 1280, height: 800 } } },
+    // Real API + real database scripts (in memory); starts its own API on :5081. See e2e/fullstack.spec.ts.
+    { name: 'fullstack', testMatch: /fullstack/, use: { viewport: { width: 1280, height: 800 } } },
   ],
 });

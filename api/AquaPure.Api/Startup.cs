@@ -60,8 +60,15 @@ namespace AquaPure.Api
             json.MaxDepth = 32;
 
             if (services.Settings.AllowedOrigins.Length > 0)
-                config.EnableCors(new EnableCorsAttribute(string.Join(",", services.Settings.AllowedOrigins),
-                    "Authorization,Content-Type,Idempotency-Key", "GET,POST,PUT,DELETE") { PreflightMaxAge = 600 });
+            {
+                // Not config.EnableCors(): that adds its CORS handler after ours, so the 401 for an expired
+                // token would have no CORS headers, the browser would report a network error, and the site
+                // could not refresh the token. Here CORS wraps every other handler.
+                var policy = new EnableCorsAttribute(string.Join(",", services.Settings.AllowedOrigins),
+                    "Authorization,Content-Type,Idempotency-Key", "GET,POST,PUT,DELETE") { PreflightMaxAge = 600 };
+                config.SetCorsPolicyProviderFactory(new SinglePolicyFactory(policy));
+                config.MessageHandlers.Insert(0, new CorsMessageHandler(config));
+            }
 
             config.MessageHandlers.Add(new SecurityHeadersHandler());
             config.MessageHandlers.Add(new AuthHandler(services.Jwt));
@@ -72,6 +79,14 @@ namespace AquaPure.Api
 
             config.EnsureInitialized();
         }
+    }
+
+    /// <summary>The same CORS policy for every request.</summary>
+    public class SinglePolicyFactory : ICorsPolicyProviderFactory
+    {
+        private readonly ICorsPolicyProvider _policy;
+        public SinglePolicyFactory(ICorsPolicyProvider policy) { _policy = policy; }
+        public ICorsPolicyProvider GetCorsPolicyProvider(System.Net.Http.HttpRequestMessage request) => _policy;
     }
 
     /// <summary>Hands the shared services to controllers and filters (no container needed).</summary>

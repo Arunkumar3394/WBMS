@@ -2,7 +2,10 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { APP_CONFIG } from './app-config';
-import { Address, AddressInput, Catalog, CustomerType, EnquiryRequest, PincodeCheck, Product, Profile, PublicSettings, Slot, Testimonial } from './models';
+import {
+  Address, AddressInput, Catalog, CustomerType, EnquiryRequest, OrderDetail, OrderItemInput, OrderSummary, PincodeCheck, PlaceOrderRequest,
+  Product, Profile, PublicSettings, Quote, RazorpayCheckout, RazorpaySuccess, Slot, Testimonial,
+} from './models';
 
 /** Calls the AquaPure API. Errors become ApiError with a message that is safe to show. */
 @Injectable({ providedIn: 'root' })
@@ -45,6 +48,19 @@ export class ApiService {
   updateAddress = (id: string, a: AddressInput) => this.put<Address>('/me/addresses/' + id, a);
   makeDefaultAddress = (id: string) => this.post<Address>('/me/addresses/' + id + '/default');
   deleteAddress = (id: string) => this.delete<{ ok: boolean }>('/me/addresses/' + id);
+
+  // ---------- Orders ----------
+  quote = (address_id: string, items: OrderItemInput[]) => this.post<Quote>('/orders/quote', { address_id, items });
+  placeOrder = (r: PlaceOrderRequest) => this.post<OrderDetail>('/orders', r);
+  orders = () => this.get<OrderSummary[]>('/orders');
+  order = (id: string) => this.get<OrderDetail>('/orders/' + encodeURIComponent(id));
+  cancelOrder = (id: string, reason: string | null) => this.post<OrderDetail>('/orders/' + encodeURIComponent(id) + '/cancel', { reason });
+
+  // ---------- Online payment (Razorpay) ----------
+  startPayment = (order_id: string) => this.post<RazorpayCheckout>('/payments/razorpay/order', { order_id });
+  verifyPayment = (r: RazorpaySuccess) => this.post<{ result: string; order_id: string }>('/payments/razorpay/verify', r);
+  paymentFailed = (r: { razorpay_order_id: string; razorpay_payment_id?: string | null; code?: string | null; description?: string | null }) =>
+    this.post<{ order_id: string }>('/payments/razorpay/failed', r);
 
   private async run<T>(request: import('rxjs').Observable<T>): Promise<T> {
     try {
