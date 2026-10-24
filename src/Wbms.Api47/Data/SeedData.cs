@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Wbms.Api47.Entities;
 using Wbms.Api47.Infrastructure;
@@ -25,6 +26,19 @@ public static class SeedData
             CreditLimit = 1000,
             Addresses = { new Address { Line = "12, Main Road", Area = "Anna Nagar", IsDefault = true } }
         });
+        db.SaveChanges();
+    }
+
+    /// <summary>
+    /// Creates the first admin on a live server, where demo data is off. Does nothing when an admin already exists
+    /// or the phone/password are not set, so the settings can be removed again after the first start.
+    /// </summary>
+    public static void EnsureFirstAdmin(WbmsDb db, string phone, string password)
+    {
+        if (phone == "" || password == "" || db.Users.Any(u => u.Role == UserRole.Admin)) return;
+        if (password.Length < 8) throw new InvalidOperationException("Setup:AdminPassword must be at least 8 characters.");
+        if (db.Users.Any(u => u.Phone == phone)) throw new InvalidOperationException("Setup:AdminPhone is already used by another account.");
+        db.Users.Add(new AppUser { Name = "Admin", Phone = phone, Role = UserRole.Admin, PasswordHash = PasswordHasher.Hash(password) });
         db.SaveChanges();
     }
 }

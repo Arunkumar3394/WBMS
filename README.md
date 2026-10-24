@@ -48,6 +48,8 @@ Customers, drivers and staff all use the website in their phone's browser; there
 
 ## Going live: settings to fill in
 
+To put the site on a server (Windows VPS, Azure or your own PC), run `deploy\make-package.cmd` and follow [deploy/DEPLOY.md](deploy/DEPLOY.md). The package runs under IIS and takes these settings from its `Web.config`.
+
 All settings are in `src/Wbms.Api47/App.config` (`<appSettings>`). Put secrets in environment variables instead, writing `:` as `__` (for example `Msg91__AuthKey`).
 
 | Setting | What |
@@ -57,7 +59,8 @@ All settings are in `src/Wbms.Api47/App.config` (`<appSettings>`). Put secrets i
 | `Razorpay:KeyId`, `Razorpay:KeySecret`, `Razorpay:WebhookSecret` | Online payment. In the Razorpay dashboard add a webhook to `https://<your-site>/api/razorpay/webhook` for `payment_link.paid` and `payment.captured` |
 | `Razorpay:CallbackUrl` | Where customers return after paying, e.g. `https://<your-site>/orders/{orderId}` |
 | `Business:Name`, `Address`, `Phone`, `Gstin` | Printed on invoice PDFs |
-| `Seed:DemoData` | Set to `false` before real use |
+| `Seed:DemoData` | Set to `false` before real use (the server package already does) |
+| `Setup:AdminPhone`, `Setup:AdminPassword` | Creates the first admin on a database that has none. Clear them after signing in |
 | `Web:Url` | Address the API listens on, e.g. `http://+:80/` on a server |
 
 ## Not done yet
