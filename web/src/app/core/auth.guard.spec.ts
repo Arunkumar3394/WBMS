@@ -7,7 +7,7 @@ describe('safeReturnUrl', () => {
   });
 
   it('refuses links to other websites and falls back to the account page', () => {
-    for (const bad of ['//evil.example.com', '/\evil.example.com', 'https://evil.example.com', 'javascript:alert(1)', '', null, undefined]) {
+    for (const bad of ['//evil.example.com', '/\\evil.example.com', 'https://evil.example.com', 'javascript:alert(1)', '', null, undefined]) {
       expect(safeReturnUrl(bad)).toBe('/account');
     }
   });
