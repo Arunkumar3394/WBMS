@@ -69,7 +69,15 @@ Drivers' live location only works on `https://`, so give drivers and customers t
 3. In the Web App → *Settings* → *Environment variables*:
    - *App settings*: add `Jwt:Key`, `Setup:AdminPhone`, `Setup:AdminPassword`, `Sms:Provider`, the `Msg91:*`, `Razorpay:*` and `Business:*` values (same names as section 2). These override `Web.config`, so you never edit files on Azure.
    - *Connection strings*: name `Wbms`, type **SQLAzure**, value = the ADO.NET connection string of your Azure SQL database (with its password).
-4. Upload the package: Web App → *Advanced Tools (Kudu)* → *Go* → *Tools* → *Zip Push Deploy*, and drag `publish\wbms-site.zip` onto the `wwwroot` folder.
+4. Upload the site, either way:
+   - **From GitHub (no build on your PC):**
+     1. Web App → *Settings* → *Configuration* → *General settings*: turn **SCM Basic Auth Publishing Credentials** on and save.
+     2. Web App → *Overview* → **Download publish profile**.
+     3. In GitHub, repository → *Settings* → *Secrets and variables* → *Actions*:
+        - *Secrets* tab → *New repository secret*: name `AZURE_WEBAPP_PUBLISH_PROFILE`, value = the whole content of the downloaded file.
+        - *Variables* tab → *New repository variable*: name `AZURE_WEBAPP_NAME`, value = your Web App's name.
+     4. Repository → *Actions* → **Deploy to Azure** → *Run workflow*. Run it again whenever you want to publish the latest code.
+   - **By hand:** build the package (section 1), then Web App → *Advanced Tools (Kudu)* → *Go* → *Tools* → *Zip Push Deploy*, and drag `publish\wbms-site.zip` onto the `wwwroot` folder.
 5. Open `https://<app-name>.azurewebsites.net` and sign in at `/admin/login`.
 6. Custom domain: *Custom domains* → *Add custom domain*, follow the DNS steps, then *Add binding* with a free **App Service Managed Certificate**.
 
@@ -90,7 +98,7 @@ The PC must stay on and connected for customers to order.
 3. Copy the new `bin` and `wwwroot` folders over the old ones. **Keep your `Web.config`** (don't overwrite it).
 4. Delete `app_offline.htm`.
 
-On Azure, zip-deploy the new package; your settings live in the portal and are kept.
+On Azure, run the **Deploy to Azure** action again (or zip-deploy the new package); your settings live in the portal and are kept.
 
 ## Backups
 
