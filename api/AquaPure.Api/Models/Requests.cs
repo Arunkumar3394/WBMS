@@ -213,6 +213,8 @@ namespace AquaPure.Api.Models
         [Required, Range(0, 1000000)] public decimal? Price { get; set; }
         [Required] public bool? IsSamplePrice { get; set; }
         [Required] public bool? IsReturnableCan { get; set; }
+        /// <summary>Returnable cans in one unit (5 for a pack of five). Deposits are per can.</summary>
+        [Range(1, 100)] public int CansPerUnit { get; set; } = 1;
         [Range(0, 100000)] public decimal DepositAmount { get; set; }
         [Required] public bool? TrackStock { get; set; }
         [Range(1, 10000)] public int MinOrderQty { get; set; } = 1;

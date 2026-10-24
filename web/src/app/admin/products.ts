@@ -74,6 +74,11 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // same limit as the storage bucket
             <label class="flex items-center gap-2"><input type="checkbox" class="h-4 w-4" formControlName="is_returnable_can" /> Returnable can (deposit for new cans)</label>
           </fieldset>
           <div>
+            <label for="p-cans" class="label">Returnable cans in one unit</label>
+            <input id="p-cans" type="number" min="1" max="100" class="input" formControlName="cans_per_unit" />
+            <p class="mt-1 text-xs text-slate-500">1 for a single can, 5 for a pack of five.</p>
+          </div>
+          <div>
             <label for="p-dep" class="label">Deposit per new can (₹)</label>
             <input id="p-dep" type="number" step="0.01" min="0" class="input" formControlName="deposit_amount" />
           </div>
@@ -221,6 +226,7 @@ export class AdminProducts implements OnInit {
     price: [0, [Validators.required, Validators.min(0)]],
     is_sample_price: [true],
     is_returnable_can: [false],
+    cans_per_unit: [1, [Validators.min(1), Validators.max(100)]],
     deposit_amount: [0, Validators.min(0)],
     track_stock: [true],
     min_order_qty: [1, Validators.min(1)],
@@ -299,7 +305,7 @@ export class AdminProducts implements OnInit {
     const editing = this.editing();
     const input: ProductInput = {
       ...v,
-      price: Number(v.price), deposit_amount: Number(v.deposit_amount) || 0,
+      price: Number(v.price), deposit_amount: Number(v.deposit_amount) || 0, cans_per_unit: Math.max(1, Math.trunc(Number(v.cans_per_unit)) || 1),
       min_order_qty: Number(v.min_order_qty), max_order_qty: Number(v.max_order_qty), sort_order: Number(v.sort_order) || 0,
       short_description: v.short_description.trim() || null, description: v.description.trim() || null, image_path: v.image_path || null,
     };

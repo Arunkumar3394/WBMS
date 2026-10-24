@@ -18,7 +18,7 @@ namespace AquaPure.Api.Controllers
     {
         // ---------- Products ----------
         private const string ProductColumns = @"id, category_id, slug, name, short_description, description, unit_label, price,
-            is_sample_price, is_returnable_can, deposit_amount, track_stock, stock_qty, min_order_qty, max_order_qty,
+            is_sample_price, is_returnable_can, cans_per_unit, deposit_amount, track_stock, stock_qty, min_order_qty, max_order_qty,
             image_path, sort_order, is_active, created_at, updated_at";
 
         [HttpGet, Route("products")]
@@ -32,10 +32,10 @@ namespace AquaPure.Api.Controllers
             Check(r);
             return WithImageUrls(await Db.AsUser(CurrentUser, s => s.JsonRow(@"
                 insert into app.products (category_id, slug, name, short_description, description, unit_label, price,
-                    is_sample_price, is_returnable_can, deposit_amount, track_stock, min_order_qty, max_order_qty,
+                    is_sample_price, is_returnable_can, cans_per_unit, deposit_amount, track_stock, min_order_qty, max_order_qty,
                     image_path, sort_order, is_active)
                 values (@categoryId, @slug, @name, @shortDescription, @description, @unitLabel, @price,
-                    @isSamplePrice, @isReturnableCan, @depositAmount, @trackStock, @minOrderQty, @maxOrderQty,
+                    @isSamplePrice, @isReturnableCan, @cansPerUnit, @depositAmount, @trackStock, @minOrderQty, @maxOrderQty,
                     @imagePath, @sortOrder, @isActive)
                 returning " + ProductColumns, ProductArgs(r))));
         }
@@ -49,7 +49,7 @@ namespace AquaPure.Api.Controllers
             var row = await Db.AsUser(CurrentUser, s => s.JsonRow(@"
                 update app.products set category_id = @categoryId, slug = @slug, name = @name,
                     short_description = @shortDescription, description = @description, unit_label = @unitLabel,
-                    price = @price, is_sample_price = @isSamplePrice, is_returnable_can = @isReturnableCan,
+                    price = @price, is_sample_price = @isSamplePrice, is_returnable_can = @isReturnableCan, cans_per_unit = @cansPerUnit,
                     deposit_amount = @depositAmount, track_stock = @trackStock, min_order_qty = @minOrderQty,
                     max_order_qty = @maxOrderQty, image_path = @imagePath, sort_order = @sortOrder, is_active = @isActive
                 where id = @id
@@ -87,7 +87,7 @@ namespace AquaPure.Api.Controllers
             ["categoryId"] = r.CategoryId, ["slug"] = r.Slug.Trim(), ["name"] = r.Name.Trim(),
             ["shortDescription"] = Blank(r.ShortDescription), ["description"] = Blank(r.Description),
             ["unitLabel"] = r.UnitLabel.Trim(), ["price"] = r.Price, ["isSamplePrice"] = r.IsSamplePrice,
-            ["isReturnableCan"] = r.IsReturnableCan, ["depositAmount"] = r.DepositAmount, ["trackStock"] = r.TrackStock,
+            ["isReturnableCan"] = r.IsReturnableCan, ["cansPerUnit"] = r.CansPerUnit, ["depositAmount"] = r.DepositAmount, ["trackStock"] = r.TrackStock,
             ["minOrderQty"] = r.MinOrderQty, ["maxOrderQty"] = r.MaxOrderQty, ["imagePath"] = Blank(r.ImagePath),
             ["sortOrder"] = r.SortOrder, ["isActive"] = r.IsActive,
         };

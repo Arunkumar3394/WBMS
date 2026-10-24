@@ -48,6 +48,7 @@ from (values
        is_returnable_can, deposit_amount, track_stock, stock_qty, min_qty, max_qty, image_path, sort_order)
 join app.product_categories c on c.slug = v.category
 on conflict (slug) do nothing;
+update app.products set cans_per_unit = 5 where slug = '20-litre-water-can-office-pack'; -- five cans per pack (deposits count cans)
 
 -- SAMPLE delivery zones: replace the pincodes with the areas you actually serve.
 insert into app.delivery_zones (name, pincodes, delivery_charge, free_delivery_min, min_order_amount) values

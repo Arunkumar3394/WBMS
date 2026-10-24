@@ -5,6 +5,9 @@
 --   P0001  business rule broken  → HTTP 400 with this message shown to the user
 --   P0002  not found             → HTTP 404
 --   42501  not allowed           → HTTP 403
+--
+-- price_order and admin_set_order_status are replaced in 0010_cans_per_unit.sql
+-- (deposits and can counts in cans rather than product units).
 -- =====================================================================
 
 -- ---------- Delivery slots for a date ----------

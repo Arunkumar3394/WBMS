@@ -105,6 +105,9 @@ export interface AdminProduct {
   price: number;
   is_sample_price: boolean;
   is_returnable_can: boolean;
+  /** Returnable cans in one unit (5 for a pack of five). */
+  cans_per_unit: number;
+  /** Deposit for one can. */
   deposit_amount: number;
   track_stock: boolean;
   stock_qty: number;

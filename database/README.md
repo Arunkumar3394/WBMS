@@ -10,6 +10,8 @@
 
 Running it again on an installed project stops with "already installed" and changes nothing.
 
+**Updating an installed database:** when a migration file is added after you installed (for example `0010_cans_per_unit.sql`), run **only that file** in the SQL Editor. Such files say at the top that they are safe to run more than once.
+
 If pg_cron is not enabled, the install still completes. It shows a notice and skips one job, the one that cancels unpaid online orders. To add it, enable **pg_cron** under **Database → Extensions** and then run `migrations/0009_cron.sql`.
 
 ## What's inside
@@ -25,7 +27,8 @@ If pg_cron is not enabled, the install still completes. It shows a notice and sk
 | 7 | `migrations/0007_storage.sql` | `product-images` bucket and admin-only upload policies |
 | 8 | `migrations/0008_reports.sql` | Sales summary and dashboard numbers |
 | 9 | `migrations/0009_cron.sql` | Expires unpaid online orders every 10 minutes (skipped with a notice if pg_cron is not enabled) |
-| 10 | `seed.sql` | Sample categories, products (sample prices), zones, slots, sample reviews |
+| 10 | `migrations/0010_cans_per_unit.sql` | Cans per product unit (packs), so deposits and can counts are in cans |
+| 11 | `seed.sql` | Sample categories, products (sample prices), zones, slots, sample reviews |
 
 Each script runs once on a fresh project. To start over, run `drop schema app cascade;`. That deletes all AquaPure data, so do it only on a test project. Then run the scripts again.
 

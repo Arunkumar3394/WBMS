@@ -2,6 +2,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import {
   createDb, createUser, asUser, one, rejects, addAddress, productId, slotId, tomorrow, placeOrder,
 } from './helpers.mjs';
@@ -152,6 +153,52 @@ test('deposits: charged only for cans beyond those the customer already has', as
   // Refunding returned cans.
   await asUser(db, admin, (tx) => tx.query("select app.admin_record_deposit($1, 'refunded', 1, 150, 'Returned one can')", [cust]));
   await rejects(asUser(db, admin, (tx) => tx.query("select app.admin_record_deposit($1, 'refunded', 5, 750, null)", [cust])), 'P0001', 'holds only 1');
+});
+
+test('deposits and delivered-can counts use the cans in a pack, not the number of packs', async () => {
+  await db.query('update app.business_settings set deposit_enabled = true');
+  const pack = await productId(db, '20-litre-water-can-office-pack'); // 5 cans, ₹190, deposit ₹150 per can
+  const first = await order(await placeOrder(db, cust, { addressId: addr, items: [{ product_id: pack, quantity: 1 }] }));
+  assert.equal(first.deposit_total, '750.00');  // 5 new cans × ₹150
+  const item = await one(db, 'select deposit_qty, deposit_per_unit from app.order_items where order_id = $1', [first.id]);
+  assert.equal(item.deposit_qty, 5);
+  assert.equal(item.deposit_per_unit, '150.00');
+
+  // The 5 cans on that open order cover a later order for single cans.
+  const second = await order(await placeOrder(db, cust, { addressId: addr, items: [{ product_id: can, quantity: 4 }] }));
+  assert.equal(second.deposit_total, '0.00');
+
+  // Delivered without a count: 5 cans are recorded, and the ledger holds 5 cans.
+  await setStatus(staff, first.id, 'confirmed');
+  await setStatus(staff, first.id, 'out_for_delivery');
+  await setStatus(staff, first.id, 'delivered');
+  assert.equal((await order(first.id)).cans_delivered, 5);
+  const ledger = await one(db, 'select cans_delta, amount from app.can_deposit_ledger where order_id = $1', [first.id]);
+  assert.equal(ledger.cans_delta, 5);
+  assert.equal(ledger.amount, '750.00');
+});
+
+test('0010 upgrades a database installed before it, and can be run again', async () => {
+  const sql = await readFile(new URL('../migrations/0010_cans_per_unit.sql', import.meta.url), 'utf8');
+  const defs = async () => (await db.query(
+    "select p.proname, pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'app' and p.proname in ('price_order', 'admin_set_order_status') order by 1")).rows;
+  const fresh = await defs();
+
+  // Put the database back to how it was before 0010: old functions, no column.
+  await db.exec(await readFile(new URL('../migrations/0005_order_functions.sql', import.meta.url), 'utf8'));
+  await db.exec('alter table app.products drop column cans_per_unit');
+  await db.exec('alter table app.order_items drop constraint order_items_deposit_qty_check');
+  await db.exec('alter table app.order_items add check (deposit_qty >= 0 and deposit_qty <= quantity)');
+  assert.notDeepEqual(await defs(), fresh);
+
+  await db.exec(sql);
+  await db.exec(sql); // a second run changes nothing
+  assert.deepEqual(await defs(), fresh);
+  assert.equal((await one(db, "select cans_per_unit from app.products where slug = '20-litre-water-can-office-pack'")).cans_per_unit, 5);
+  assert.equal((await one(db, "select cans_per_unit from app.products where slug = '20-litre-water-can'")).cans_per_unit, 1);
+  const checks = (await db.query("select pg_get_constraintdef(oid) d from pg_constraint where conrelid = 'app.order_items'::regclass and contype = 'c'")).rows.map((r) => r.d);
+  assert.ok(!checks.some((d) => d.includes('deposit_qty <= quantity')), checks.join('; '));
+  assert.ok(checks.some((d) => d.includes('deposit_qty >= 0')));
 });
 
 test('status changes follow the allowed path and are recorded', async () => {
