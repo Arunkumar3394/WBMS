@@ -29,6 +29,12 @@ public class ApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Root_explains_how_to_add_the_website_when_it_is_not_built()
+    {
+        Assert.Contains("npm run build", await app.Client().GetStringAsync(""));
+    }
+
+    [Fact]
     public async Task Endpoints_require_sign_in()
     {
         var res = await app.Client().GetAsync("api/orders");

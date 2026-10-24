@@ -33,6 +33,13 @@ public static class Startup
 
         if (services.WebRoot != null && Directory.Exists(services.WebRoot))
             UseAngularSite(app, services.WebRoot);
+        else
+            AppBuilderUseExtensions.Use(app, (ctx, next) =>
+            {
+                if (ctx.Request.Path.Value != "/") return next();
+                ctx.Response.ContentType = "text/plain";
+                return ctx.Response.WriteAsync("WBMS API is running. To get the website here, run 'npm install' and 'npm run build' in src/wbms-web, then restart.");
+            });
 
         app.UseWebApi(CreateWebApiConfig(services));
     }
