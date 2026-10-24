@@ -6,13 +6,10 @@ import { AuthService } from '../core/auth.service';
 
 /** At least 8 characters with a letter and a number. */
 const passwordRules = [Validators.required, Validators.minLength(8), Validators.maxLength(72), Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/)];
-const PASSWORD_HINT = 'At least 8 characters, with letters and numbers.';
 
 function invalid(c: AbstractControl): true | null {
   return c.invalid && (c.touched || c.dirty) ? true : null;
 }
-
-const CARD = 'card mx-auto w-full max-w-md p-6 sm:p-8';
 
 // ---------------------------------------------------------------- Sign in
 @Component({
@@ -20,7 +17,7 @@ const CARD = 'card mx-auto w-full max-w-md p-6 sm:p-8';
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="container-page py-14">
-      <div class="${CARD}">
+      <div class="card mx-auto w-full max-w-md p-6 sm:p-8">
         <h1 class="text-2xl">Sign in</h1>
         <p class="mt-1 text-slate-600">Welcome back. Sign in to order and track your deliveries.</p>
         <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 space-y-4" novalidate>
@@ -85,7 +82,7 @@ export class Login {
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="container-page py-14">
-      <div class="${CARD}">
+      <div class="card mx-auto w-full max-w-md p-6 sm:p-8">
         @if (checkEmail()) {
           <div role="status">
             <h1 class="text-2xl">Check your email</h1>
@@ -113,7 +110,7 @@ export class Login {
               <label for="password" class="label">Password</label>
               <input id="password" type="password" formControlName="password" class="input" autocomplete="new-password"
                      aria-describedby="password-hint" [attr.aria-invalid]="bad('password')" />
-              <p id="password-hint" class="mt-1 text-xs" [class.text-red-600]="bad('password')" [class.text-slate-500]="!bad('password')">${PASSWORD_HINT}</p>
+              <p id="password-hint" class="mt-1 text-xs" [class.text-red-600]="bad('password')" [class.text-slate-500]="!bad('password')">At least 8 characters, with letters and numbers.</p>
             </div>
             @if (error()) {<p class="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{{ error() }}</p>}
             <button type="submit" class="btn-primary w-full py-3" [disabled]="busy()">{{ busy() ? 'Creating account…' : 'Create account' }}</button>
@@ -167,7 +164,7 @@ export class Register {
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="container-page py-14">
-      <div class="${CARD}">
+      <div class="card mx-auto w-full max-w-md p-6 sm:p-8">
         <h1 class="text-2xl">Reset your password</h1>
         @if (sent()) {
           <p class="mt-3 text-slate-600" role="status">
@@ -224,7 +221,7 @@ function matching(group: AbstractControl): ValidationErrors | null {
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="container-page py-14">
-      <div class="${CARD}">
+      <div class="card mx-auto w-full max-w-md p-6 sm:p-8">
         <h1 class="text-2xl">Choose a new password</h1>
         @if (!auth.signedIn()) {
           <p class="mt-3 text-slate-600">This link has expired or was already used. Please request a new one.</p>
@@ -238,7 +235,7 @@ function matching(group: AbstractControl): ValidationErrors | null {
               <label for="password" class="label">New password</label>
               <input id="password" type="password" formControlName="password" class="input" autocomplete="new-password"
                      aria-describedby="password-hint" [attr.aria-invalid]="badPassword()" />
-              <p id="password-hint" class="mt-1 text-xs" [class.text-red-600]="badPassword()" [class.text-slate-500]="!badPassword()">${PASSWORD_HINT}</p>
+              <p id="password-hint" class="mt-1 text-xs" [class.text-red-600]="badPassword()" [class.text-slate-500]="!badPassword()">At least 8 characters, with letters and numbers.</p>
             </div>
             <div>
               <label for="confirm" class="label">Repeat new password</label>

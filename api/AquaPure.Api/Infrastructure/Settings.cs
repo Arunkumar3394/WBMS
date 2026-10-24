@@ -11,6 +11,8 @@ namespace AquaPure.Api.Infrastructure
         public string[] AllowedOrigins { get; set; }
         public bool TrustProxy { get; set; }
         public string SupabaseUrl { get; set; }
+        /// <summary>Optional: the address browsers use for Supabase, e.g. a proxy on your own domain (see SETUP.md). Defaults to SupabaseUrl.</summary>
+        public string SupabasePublicUrl { get; set; }
         public string SupabaseJwtSecret { get; set; }
         public string DbConnection { get; set; }
         public string RazorpayKeyId { get; set; }
@@ -24,7 +26,7 @@ namespace AquaPure.Api.Infrastructure
         {
             if (string.IsNullOrEmpty(path)) return null;
             if (path.StartsWith("http://") || path.StartsWith("https://") || path.StartsWith("/")) return path;
-            return SupabaseUrl.TrimEnd('/') + "/storage/v1/object/public/product-images/" + Uri.EscapeUriString(path);
+            return (string.IsNullOrEmpty(SupabasePublicUrl) ? SupabaseUrl : SupabasePublicUrl).TrimEnd('/') + "/storage/v1/object/public/product-images/" + Uri.EscapeUriString(path);
         }
 
         public static Settings Load()
@@ -38,6 +40,7 @@ namespace AquaPure.Api.Infrastructure
                     .Select(o => o.Trim().TrimEnd('/')).Where(o => o.Length > 0).ToArray(),
                 TrustProxy = port != null || string.Equals(Get("TRUST_PROXY", "false"), "true", StringComparison.OrdinalIgnoreCase),
                 SupabaseUrl = Get("SUPABASE_URL", "").TrimEnd('/'),
+                SupabasePublicUrl = Get("SUPABASE_PUBLIC_URL", "").TrimEnd('/'),
                 SupabaseJwtSecret = Get("SUPABASE_JWT_SECRET", ""),
                 DbConnection = Get("DB_CONNECTION", ""),
                 RazorpayKeyId = Get("RAZORPAY_KEY_ID", ""),

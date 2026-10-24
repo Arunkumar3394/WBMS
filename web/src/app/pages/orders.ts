@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiService, errorMessage } from '../core/api.service';
+import { BUSINESS, telLink, whatsappLink } from '../core/business';
 import { OrderDetail, OrderSummary } from '../core/models';
 import { PaymentService } from '../core/payment.service';
 import { OrderTimeline, StatusBadge, formatDateTime, formatDay, paymentLabel } from '../shared/order-ui';
@@ -166,6 +167,16 @@ export class Orders implements OnInit {
               <p class="text-sm font-semibold text-brand-900">{{ payLabel() }}</p>
             </section>
 
+            @if (help(); as h) {
+              <section class="card p-6" aria-labelledby="help-title">
+                <h2 id="help-title" class="text-lg">Need help with this order?</h2>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @if (h.whatsapp) {<a [href]="h.whatsapp" target="_blank" rel="noopener" class="btn-whatsapp">WhatsApp us</a>}
+                  @if (h.phone) {<a [href]="h.phone" class="btn-secondary">Call {{ business.phone }}</a>}
+                </div>
+              </section>
+            }
+
             @if (o.status === 'pending' && o.payment_status !== 'paid') {
               <button type="button" class="btn-secondary w-full border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50"
                       [disabled]="cancelling()" (click)="cancel()">{{ cancelling() ? 'Cancelling…' : 'Cancel this order' }}</button>
@@ -198,6 +209,14 @@ export class OrderDetailPage implements OnInit, OnDestroy {
 
   protected readonly when = formatDateTime;
   protected readonly day = (d: string) => formatDay(d, true);
+  protected readonly business = BUSINESS;
+  /** WhatsApp (with the order number filled in) and phone, when the business has set them. */
+  protected readonly help = computed(() => {
+    const o = this.order();
+    const whatsapp = o ? whatsappLink(`Hello AquaPure Water, I have a question about my order ${o.order_no}.`) : null;
+    const phone = BUSINESS.phone ? telLink(BUSINESS.phone) : null;
+    return whatsapp || phone ? { whatsapp, phone } : null;
+  });
   protected readonly payLabel = computed(() => {
     const o = this.order();
     return o ? paymentLabel(o.payment_method, o.payment_status) : '';
