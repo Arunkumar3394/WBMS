@@ -5,13 +5,94 @@
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
   --color-brand-500: #2563eb;
   --color-brand-600: #1d4ed8;
   --color-brand-700: #1e40af;
+  --color-brand-800: #1e3a8a;
   --color-brand-900: #172554;
   --color-aqua-50: #ecfeff;
   --color-aqua-100: #cffafe;
+  --color-aqua-200: #a5f3fc;
   --color-aqua-300: #67e8f9;
   --color-aqua-500: #06b6d4;
+  --color-aqua-700: #0e7490;
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base button, declared as a utility so the variants below can @apply it. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white font-sans text-slate-700 antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight text-brand-900;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  .section {
+    @apply py-14 sm:py-20;
+  }
+  .eyebrow {
+    @apply text-sm font-semibold tracking-wide text-aqua-700 uppercase;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+  }
+  .btn-secondary {
+    @apply btn border border-brand-200 bg-white text-brand-700 hover:border-brand-300 hover:bg-brand-50;
+  }
+  .btn-light {
+    @apply btn bg-white text-brand-700 shadow-sm hover:bg-aqua-50;
+  }
+  .btn-whatsapp {
+    @apply btn bg-[#1f8f4e] text-white hover:bg-[#187a41];
+  }
+
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+  .input {
+    @apply block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none aria-invalid:border-red-500;
+  }
+  .field-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  .badge-sample {
+    @apply inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200;
+  }
 }
