@@ -5,6 +5,8 @@ import { SiteLayout } from './layout/site-layout';
 const t = (page: string) => `${page} | AquaPure Water`;
 
 export const routes: Routes = [
+  // Staff and admin area, with its own layout (loaded only when opened).
+  { path: 'admin', loadChildren: () => import('./admin/admin.routes').then((m) => m.adminRoutes) },
   {
     path: '',
     component: SiteLayout,

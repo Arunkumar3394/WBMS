@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node build-setup.mjs",
     "pretest": "node build-setup.mjs",
-    "test": "node --test tests/"
+    "test": "node --test \"tests/*.test.mjs\""
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",

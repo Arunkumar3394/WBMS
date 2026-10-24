@@ -15,6 +15,9 @@ import { ErrorBox, PageHeader, Spinner } from '../shared/ui';
     <app-page-header title="My account" [intro]="profile()?.email ?? ''">
       <div class="mt-6 flex flex-wrap gap-3">
         <a routerLink="/orders" class="btn-primary">My orders</a>
+        @if (profile()?.role === 'staff' || profile()?.role === 'admin') {
+          <a routerLink="/admin" class="btn-secondary">Admin dashboard</a>
+        }
         <button type="button" class="btn-secondary" (click)="signOut()">Sign out</button>
       </div>
     </app-page-header>

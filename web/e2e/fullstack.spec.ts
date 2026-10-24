@@ -20,7 +20,9 @@ const config = JSON.parse(readFileSync('public/config.json', 'utf8')) as { supab
 
 // Test users created by database/tests/serve.mjs
 const CUSTOMER = '00000000-0000-4000-8000-000000000001';
+const STAFF = '00000000-0000-4000-8000-000000000003';
 const ADMIN = '00000000-0000-4000-8000-000000000004';
+const EMAILS: Record<string, string> = { [CUSTOMER]: 'customer@example.com', [STAFF]: 'staff@example.com', [ADMIN]: 'admin@example.com' };
 
 const root = path.resolve('..');
 const apiExe = path.join(root, 'api/AquaPure.Api/bin/Debug/net48/AquaPure.Api.exe');
@@ -73,14 +75,15 @@ function token(userId: string, email: string): string {
 }
 
 /** Points the site at the test API and answers Supabase's sign-in call with a test token. */
-async function useTestBackend(page: Page) {
+async function useTestBackend(page: Page, user = CUSTOMER) {
+  const email = EMAILS[user];
   await page.route('**/config.json', (r) => r.fulfill({ json: { ...config, apiBaseUrl: API } }));
   const now = Math.floor(Date.now() / 1000);
   await page.route('**/auth/v1/token?grant_type=password', (r) =>
     r.fulfill({
       json: {
-        access_token: token(CUSTOMER, 'customer@example.com'), token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: 'test-refresh',
-        user: { id: CUSTOMER, aud: 'authenticated', role: 'authenticated', email: 'customer@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() },
+        access_token: token(user, email), token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: 'test-refresh',
+        user: { id: user, aud: 'authenticated', role: 'authenticated', email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() },
       },
     }),
   );
@@ -188,4 +191,157 @@ test('a customer can cancel a pending order and cannot see other people\'s order
   // An order id that is not theirs (or does not exist) is simply "not found".
   await page.goto('/orders/11111111-1111-4111-8111-111111111111');
   await expect(page.getByRole('alert')).toContainText('not found');
+});
+
+// ---------------------------------------------------------------- Staff and admin
+test('customers cannot open the admin area; staff see only their pages', async ({ page }) => {
+  await useTestBackend(page, CUSTOMER);
+  await signIn(page, '/admin');
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(page.getByRole('link', { name: 'Admin dashboard' })).toHaveCount(0);
+
+  const staff = await page.context().browser()!.newPage({ baseURL: 'http://localhost:4300' });
+  await useTestBackend(staff, STAFF);
+  await signIn(staff, '/admin');
+  await expect(staff.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  const nav = staff.getByRole('navigation', { name: 'Admin' }).last();
+  await expect(nav.getByRole('link', { name: 'Orders' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Products' })).toHaveCount(0);
+  await staff.goto('/admin/products');
+  await expect(staff).toHaveURL(/\/admin$/);
+  // And the API itself refuses (not just the menu).
+  const res = await http.get('/api/admin/products', { headers: { Authorization: 'Bearer ' + token(STAFF, 'staff@example.com') } });
+  expect(res.status()).toBe(403);
+  await staff.close();
+});
+
+test('staff deliver an order and record the cash', async ({ page }) => {
+  await useTestBackend(page, STAFF);
+  await signIn(page, '/admin');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Orders' }).click();
+  await page.getByLabel('Status').selectOption('confirmed');
+  await page.getByRole('button', { name: 'Filter' }).click();
+  await expect(page).toHaveURL(/status=confirmed/);
+  await expect(page.locator('tbody tr')).toHaveCount(1); // the order confirmed in the first test
+  await page.locator('tbody tr a').first().click();
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Order AQ\d+/);
+  await expect(page.getByText('Customer note: Ring the bell twice')).toBeVisible();
+  await page.getByRole('button', { name: 'Out for delivery' }).click();
+  await expect(page.getByText('Order marked as out for delivery.')).toBeVisible();
+  await page.getByLabel('Empty cans collected').fill('2');
+  await page.getByRole('button', { name: 'Mark delivered' }).click();
+  await expect(page.getByText('Order marked as delivered.')).toBeVisible();
+  await expect(page.getByText('Cans delivered: 2 · Empties collected: 2')).toBeVisible(); // counted from the order
+
+  page.once('dialog', (d) => d.accept());
+  await page.getByRole('button', { name: /Cash \/ UPI received/ }).click();
+  await expect(page.getByText('Payment recorded.')).toBeVisible();
+  await expect(page.getByText('Paid on delivery')).toBeVisible();
+
+  await page.getByLabel('Staff notes (not shown to the customer)').fill('Gate code 1234');
+  await page.getByRole('button', { name: 'Save notes' }).click();
+  await expect(page.getByText('Notes saved.')).toBeVisible();
+});
+
+test('admin manages products, stock, delivery zones, settings, enquiries and customers', async ({ page }) => {
+  // Supabase Storage is simulated; the bucket's admin-only rule is in database/migrations/0007_storage.sql.
+  await page.route('**/storage/v1/object/product-images/**', (r) => r.fulfill({ json: { Key: 'product-images/x.png', Id: 'x' } }));
+  await useTestBackend(page, ADMIN);
+  await signIn(page, '/admin/products');
+  await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
+
+  // Edit a product: new price, no longer a sample price, an image.
+  const row = page.locator('tbody tr', { hasText: '20 L Water Can' }).first();
+  await row.getByRole('button', { name: 'Edit' }).click();
+  await page.getByLabel('Price (₹) *').fill('45');
+  await page.getByLabel(/Mark the price as a sample/).uncheck();
+  await page.locator('input[type=file]').setInputFiles({ name: 'can.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a', 'hex') });
+  await expect(page.getByRole('img', { name: 'Current product image' })).toHaveAttribute('src', /product-images\/products\/20-litre-water-can-/);
+  await page.getByRole('button', { name: 'Save product' }).click();
+  await expect(page.getByText('Saved 20 L Water Can.')).toBeVisible();
+  const product = await (await http.get('/api/catalog/products/20-litre-water-can')).json();
+  expect(Number(product.price)).toBe(45);
+  expect(product.is_sample_price).toBe(false);
+  expect(product.image_path).toMatch(/^products\/20-litre-water-can-.*\.png$/);
+
+  // Stock: a restock is recorded with its history.
+  await row.getByRole('button', { name: 'Stock' }).click();
+  await page.getByLabel('Change (+ in, − out)').fill('10');
+  await page.getByRole('button', { name: 'Record' }).click();
+  await expect(page.getByText(/Stock for 20 L Water Can is now \d+\./)).toBeVisible();
+  await expect(page.getByRole('cell', { name: '+10' })).toBeVisible();
+
+  // Delivery zone: bad pincodes are caught, then a new zone is saved and served.
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Delivery' }).click();
+  await page.getByRole('button', { name: 'Add zone' }).click();
+  await page.getByLabel('Zone name *').fill('Zone C – Test');
+  await page.getByLabel('Pincodes *').fill('600050 60005');
+  await page.getByRole('button', { name: 'Save zone' }).click();
+  await expect(page.getByText('These are not valid 6-digit pincodes: 60005')).toBeVisible();
+  await page.getByLabel('Pincodes *').fill('600050, 600051');
+  await page.getByLabel('Delivery charge (₹)').fill('25');
+  await page.getByRole('button', { name: 'Save zone' }).click();
+  await expect(page.getByText('600050, 600051')).toBeVisible();
+  expect((await (await http.get('/api/delivery/check?pincode=600051')).json()).served).toBe(true);
+
+  // Settings: a closed day is saved.
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Settings' }).click();
+  const settings = await (await http.get('/api/settings')).json();
+  const closed = new Date(Date.parse(settings.today + 'T00:00:00Z') + 2 * 86400_000).toISOString().slice(0, 10);
+  await page.getByLabel('Closed dates (no deliveries)').fill(closed);
+  await page.getByRole('button', { name: 'Add date' }).click();
+  await page.getByRole('button', { name: 'Save settings' }).click();
+  await expect(page.getByText('Settings saved.')).toBeVisible();
+  expect((await (await http.get('/api/settings')).json()).closed_dates).toContain(closed);
+
+  // Enquiries: one from the public form appears as new and can be moved along.
+  const sent = await http.post('/api/enquiries', { data: { enquiry_type: 'monthly_supply', name: 'Priya Office', phone: '9123456780', message: 'Need 40 cans a month for our office.' } });
+  expect(sent.status()).toBe(200);
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Enquiries' }).click();
+  const card = page.getByRole('listitem').filter({ hasText: 'Priya Office' });
+  await expect(card).toContainText('Monthly supply');
+  await card.getByLabel('Status').selectOption('in_progress');
+  await card.getByLabel('Notes').fill('Called back, sending quote');
+  await card.getByRole('button', { name: 'Save' }).click();
+  await expect(card.getByRole('button', { name: 'Saved ✓' })).toBeVisible();
+
+  // Customers: find one, see their orders, record a can adjustment.
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Customers' }).click();
+  await page.getByLabel('Search').fill('Test Customer');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await page.getByRole('link', { name: 'Test Customer' }).click();
+  await expect(page.getByRole('heading', { name: /Orders \(2\)/ })).toBeVisible();
+  await page.getByLabel('Entry').selectOption('adjustment');
+  await page.getByLabel('Cans (+/−)').fill('2');
+  await page.getByLabel('Amount (+/− ₹)').fill('300');
+  await page.getByRole('button', { name: 'Record' }).click();
+  await expect(page.getByText('Deposit entry recorded.')).toBeVisible();
+  await expect(page.getByText('Cans held with a deposit: 2')).toBeVisible();
+
+  // Reports: the delivered ₹80 order counts as sales and as collected.
+  await page.getByRole('navigation', { name: 'Admin' }).last().getByRole('link', { name: 'Reports' }).click();
+  await expect(page.getByRole('heading', { name: 'By product' })).toBeVisible();
+  await expect(page.locator('section', { hasText: 'By product' })).toContainText('20 L Water Can');
+  await expect(page.locator('.card', { hasText: 'Collected (paid)' })).toContainText('₹80');
+});
+
+test('every admin page fits a phone screen (no sideways scrolling)', async ({ page }) => {
+  await useTestBackend(page, ADMIN);
+  await signIn(page, '/admin');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 740 });
+  const pages = ['/admin', '/admin/orders', '/admin/customers', '/admin/enquiries', '/admin/reports', '/admin/products',
+    '/admin/categories', '/admin/delivery', '/admin/settings', '/admin/reviews'];
+  for (const url of pages) {
+    await page.goto(url);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), url).toBe(true);
+  }
+  await page.goto('/admin/orders');
+  await page.locator('tbody tr a').first().click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Order AQ/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'order detail').toBe(true);
 });

@@ -68,12 +68,14 @@ export class Login {
     try {
       const { email, password } = this.form.getRawValue();
       await this.auth.signIn(email.trim(), password);
-      await this.router.navigateByUrl(safeReturnUrl(this.returnUrl()));
     } catch (e) {
       this.error.set((e as Error).message);
+      return;
     } finally {
       this.busy.set(false);
     }
+    // Signed in. If the page they wanted fails to open, go to their account instead of showing an error.
+    await this.router.navigateByUrl(safeReturnUrl(this.returnUrl())).catch(() => this.router.navigateByUrl('/account'));
   }
 }
 
@@ -144,16 +146,18 @@ export class Register {
     if (this.form.invalid) return;
     this.busy.set(true);
     this.error.set(null);
+    let needsConfirmation: boolean;
     try {
       const { fullName, email, password } = this.form.getRawValue();
-      const { needsConfirmation } = await this.auth.signUp(email.trim(), password, fullName.trim());
-      if (needsConfirmation) this.checkEmail.set(true);
-      else await this.router.navigateByUrl(safeReturnUrl(this.returnUrl()));
+      ({ needsConfirmation } = await this.auth.signUp(email.trim(), password, fullName.trim()));
     } catch (e) {
       this.error.set((e as Error).message);
+      return;
     } finally {
       this.busy.set(false);
     }
+    if (needsConfirmation) this.checkEmail.set(true);
+    else await this.router.navigateByUrl(safeReturnUrl(this.returnUrl())).catch(() => this.router.navigateByUrl('/account'));
   }
 }
 
