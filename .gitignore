@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Angular build output (npm run build in src/wbms-web)
+src/Wbms.Api47/wwwroot/

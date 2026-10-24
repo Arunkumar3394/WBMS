@@ -259,3 +259,35 @@ public class ApiTests : IDisposable
         Assert.Equal("Shop 3, Bazaar St", (string)me["addresses"]![0]!["line"]!); // default first
     }
 }
+
+public class WebsiteHostingTests : IDisposable
+{
+    private readonly string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "wbms-web-" + Guid.NewGuid().ToString("N"));
+    private readonly TestApp app;
+
+    public WebsiteHostingTests()
+    {
+        System.IO.Directory.CreateDirectory(root);
+        System.IO.File.WriteAllText(System.IO.Path.Combine(root, "index.html"), "<app-root></app-root>");
+        System.IO.File.WriteAllText(System.IO.Path.Combine(root, "main.js"), "console.log(1)");
+        app = new TestApp(s => s.WebRoot = root);
+    }
+
+    public void Dispose()
+    {
+        app.Dispose();
+        System.IO.Directory.Delete(root, true);
+    }
+
+    [Fact]
+    public async Task Serves_the_angular_site_with_deep_links_and_leaves_the_api_alone()
+    {
+        var c = app.Client();
+        Assert.Contains("app-root", await c.GetStringAsync(""));
+        Assert.Contains("app-root", await c.GetStringAsync("orders/12")); // deep link → index.html
+        Assert.Contains("console.log", await c.GetStringAsync("main.js"));
+        Assert.Equal(HttpStatusCode.NotFound, (await c.GetAsync("missing.js")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await c.GetAsync("api/orders")).StatusCode);
+        Assert.Equal("ok", (string)(await c.GetJson("api"))["status"]!);
+    }
+}

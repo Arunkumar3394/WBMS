@@ -68,7 +68,8 @@ public static class Startup
     private static void UseAngularSite(IAppBuilder app, string webRoot)
     {
         var fileSystem = new PhysicalFileSystem(webRoot);
-        app.Use(async (IOwinContext ctx, System.Func<Task> next) =>
+        // Called as a static method: IAppBuilder.Use(object, params object[]) would otherwise win and fail at startup.
+        AppBuilderUseExtensions.Use(app, async (ctx, next) =>
         {
             var path = ctx.Request.Path.Value ?? "/";
             if (ctx.Request.Method == "GET" && !path.StartsWith("/api/") && path != "/api" &&
