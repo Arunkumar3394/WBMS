@@ -1,6 +1,6 @@
 # WBMS: Water Business Management System
 
-Manages water-can orders from booking to delivery: a website for customers and staff (Angular), an Android app for customers and drivers, and a .NET Framework 4.7 Web API behind both.
+Manages water-can orders from booking to delivery: one Angular website, made for phones, with pages for customers, drivers and staff, and a .NET Framework 4.7 Web API behind it.
 
 ## Order flow
 
@@ -12,10 +12,8 @@ delivery completed → invoice and customer balance updated.
 
 | Project | What it is |
 |---|---|
-| `src/Wbms.Api47` | **.NET Framework 4.7** ASP.NET Web API 2 (C#, OWIN self-host, EF6, SQL Server). Serves the API for the website and the mobile app, and the built Angular site |
-| `src/wbms-web` | **Angular** website: customer pages (sign up, book, pay online, track the driver, invoices) and the admin pages under `/admin` |
-| `src/Wbms.Client` | Shared logic for the mobile app: API client and view models (login, driver deliveries, customer booking, tracking) |
-| `src/Wbms.Mobile` | .NET MAUI Android app for customers and drivers (same app, screens depend on who signs in) |
+| `src/Wbms.Api47` | **.NET Framework 4.7** ASP.NET Web API 2 (C#, OWIN self-host, EF6, SQL Server). Serves the API and the built Angular site |
+| `src/wbms-web` | **Angular** website for phones and computers: customer pages (sign up, book, pay online, track the driver, invoices), driver pages under `/driver` (deliveries, start, share location, customer's code, cans and cash) and admin pages under `/admin` |
 | `tests/Wbms.Api47.Tests` | Tests for the 4.7 API (xUnit, in-memory database, no SQL Server needed) |
 | `src/Wbms.Api`, `src/Wbms.Admin`, `src/Wbms.Core`, `src/Wbms.Data`, `tests/Wbms.Tests` | The earlier .NET 8 API and Blazor admin. Replaced by the two projects above; they will be removed once the new ones are running for you |
 
@@ -37,16 +35,16 @@ Tests: open Test Explorer and run `Wbms.Api47.Tests`.
 
 - **Admin pages (`/admin`):** phone `9000000000`, password `Admin@12345` (demo data). Change it on the *Account* page, and add staff on *Staff*.
 - **Customers:** sign up on the website, or use the demo customer `9000000002`. The 4-digit code is printed in the API console window until SMS is set up.
-- **Drivers:** use the mobile app; demo driver `9000000001`.
+- **Drivers:** sign in on the same site with their phone number and code; they land on `/driver`. Demo driver `9000000001`.
 - API: `POST /api/auth/request-otp` with a phone number, then `POST /api/auth/verify` with the code to get a token; staff use `POST /api/auth/password`.
 
-### Mobile app (Android)
+### Using it on phones
 
-1. In the Visual Studio Installer, add the **.NET Multi-platform App UI development** workload.
-2. The emulator reaches your PC at `10.0.2.2`, so the API must listen on all addresses: in `src/Wbms.Api47/App.config` set `Web:Url` to `http://+:5080/`, then once, in a Command Prompt run as administrator: `netsh http add urlacl url=http://+:5080/ user=Everyone`.
-3. Start `Wbms.Api47`, then run `Wbms.Mobile` on an Android emulator. For a real phone, change `ApiConfig.BaseUrl` to your PC's Wi-Fi address.
+Customers, drivers and staff all use the website in their phone's browser; there is no app to install.
 
-Live tracking: the driver's phone sends its position every 15 seconds while the delivery screen is open, and the customer's screen (website or app) refreshes the order every 10 seconds.
+- To open it from a phone on the same Wi-Fi while testing: in `src/Wbms.Api47/App.config` set `Web:Url` to `http://+:5080/`, run once in a Command Prompt as administrator `netsh http add urlacl url=http://+:5080/ user=Everyone`, then open `http://<your PC's IP>:5080` on the phone.
+- **Drivers' location needs https.** Phone browsers only share location with `https://` sites, so live tracking works once the site is hosted with an SSL certificate (or on `localhost`). Everything else works on plain http.
+- Live tracking: the driver's phone sends its position every 15 seconds while the delivery page is open, and the customer's order page refreshes every 10 seconds.
 
 ## Going live: settings to fill in
 
@@ -64,6 +62,6 @@ All settings are in `src/Wbms.Api47/App.config` (`<appSettings>`). Put secrets i
 
 ## Not done yet
 
-- Mobile app: location is shared only while the delivery screen is open (no background tracking yet), and the map opens in Google Maps rather than inside the app.
+- Driver location is shared only while the delivery page is open in the driver's browser (browsers don't allow background tracking).
 - Database changes after the first run: EF6 creates the database once; later model changes will need EF6 migrations (`Enable-Migrations` in the Package Manager Console).
 - GST calculation on invoices (the tax field exists but is always 0).

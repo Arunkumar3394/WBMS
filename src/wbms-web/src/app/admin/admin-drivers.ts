@@ -19,13 +19,13 @@ import { Driver } from '../shared/models';
       <div class="col-md-2"><button class="btn btn-success w-100" [disabled]="busy()">Add driver</button></div>
     </form>
     <p class="small text-body-secondary">Drivers sign in to the WBMS mobile app with their phone number and a code sent by SMS.</p>
-    <table class="table table-sm align-middle">
+    <table class="table table-sm align-middle table-stack">
       <thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Capacity</th><th></th></tr></thead>
       <tbody>
         @for (d of drivers(); track d.id) {
           <tr [class.text-body-secondary]="!d.user.isActive">
-            <td>{{ d.user.name }}</td><td>{{ d.user.phone }}</td><td>{{ d.vehicleNo }}</td><td>{{ d.vehicleCapacity }}</td>
-            <td class="text-end">
+            <td data-label="Name">{{ d.user.name }}</td><td data-label="Phone"><a [href]="'tel:' + d.user.phone">{{ d.user.phone }}</a></td><td data-label="Vehicle">{{ d.vehicleNo }}</td><td data-label="Capacity">{{ d.vehicleCapacity }}</td>
+            <td data-label="" class="text-end actions">
               <button class="btn btn-sm" [class.btn-outline-secondary]="d.user.isActive" [class.btn-outline-success]="!d.user.isActive"
                       (click)="toggle(d)" [disabled]="busy()">{{ d.user.isActive ? 'Switch off' : 'Switch on' }}</button>
             </td>

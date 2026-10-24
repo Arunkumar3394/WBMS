@@ -4,7 +4,7 @@ using Wbms.Api47.Entities;
 
 namespace Wbms.Api47.Controllers;
 
-/// <summary>SlotDate is "yyyy-MM-dd" (a day, no time), matching what the mobile app expects.</summary>
+/// <summary>SlotDate is "yyyy-MM-dd" (a day, no time).</summary>
 public record OrderDto(int Id, string OrderNo, int CustomerId, string CustomerName, string CustomerPhone, string Address,
     double? AddressLat, double? AddressLng, OrderStatus Status,
     PaymentMode PaymentMode, decimal Total, string SlotDate, int? DriverId, string? DriverName, string? DriverPhone, List<OrderItemDto> Items,

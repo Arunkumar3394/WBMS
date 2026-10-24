@@ -56,3 +56,17 @@ details > summary { cursor: pointer; }
   .customer-nav { width: 100%; justify-content: space-between; }
   .stat-value { font-size: 1.25rem; }
 }
+
+/* Admin tables become one card per row on phones. Each cell shows its column name from data-label. */
+@media (max-width: 767.98px) {
+  .table-stack thead { display: none; }
+  .table-stack, .table-stack tbody { display: block; }
+  .table-stack tr { display: block; background: #fff; border: 1px solid var(--bs-border-color); border-radius: .5rem; margin-bottom: .75rem; padding: .35rem .6rem; }
+  .table-stack td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border: 0; padding: .3rem 0; text-align: right !important; background: transparent; }
+  .table-stack td::before { content: attr(data-label); font-weight: 600; font-size: .8rem; color: var(--bs-secondary-color); text-align: left; flex-shrink: 0; }
+  .table-stack td[data-label=""]::before { display: none; }
+  .table-stack td.actions { justify-content: flex-end; flex-wrap: wrap; gap: .4rem; }
+  .table-stack td[colspan] { justify-content: center; }
+  .table-stack td[colspan]::before { display: none; }
+  .table-stack td > select { max-width: 60%; }
+}

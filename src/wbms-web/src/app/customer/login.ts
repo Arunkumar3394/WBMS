@@ -17,7 +17,6 @@ import { errorMessage } from '../shared/http';
             <h1 class="h4 mb-1">Sign in</h1>
             <p class="text-body-secondary mb-4">We'll text a 4-digit code to your mobile number.</p>
             @if (error()) { <div class="alert alert-danger py-2">{{ error() }}</div> }
-            @if (info()) { <div class="alert alert-info py-2">{{ info() }}</div> }
 
             @if (!codeSent()) {
               <form (ngSubmit)="sendCode()">
@@ -56,7 +55,6 @@ export class Login {
   codeSent = signal(false);
   busy = signal(false);
   error = signal<string | null>(null);
-  info = signal<string | null>(null);
 
   constructor() {
     if (this.phone) this.sendCode(); // just registered
@@ -68,7 +66,6 @@ export class Login {
     try {
       await this.api.requestOtp(this.phone);
       this.codeSent.set(true);
-      this.info.set(null);
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
@@ -81,14 +78,8 @@ export class Login {
     this.busy.set(true);
     try {
       const t = await this.api.verifyOtp(this.phone, this.otp);
-      if (t.user.role === 'Driver') {
-        this.info.set('Drivers use the WBMS mobile app to see and deliver orders.');
-        this.codeSent.set(false);
-        this.otp = '';
-        return;
-      }
       this.auth.signIn(t);
-      this.router.navigateByUrl(t.user.role === 'Customer' ? '/' : '/admin');
+      this.router.navigateByUrl(t.user.role === 'Customer' ? '/' : t.user.role === 'Driver' ? '/driver' : '/admin');
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

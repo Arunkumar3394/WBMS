@@ -53,6 +53,14 @@ export class ApiService {
   cancel(id: number) { return this.post<Order>(`api/orders/${id}/cancel`); }
   paymentLink(id: number) { return this.post<{ url: string }>(`api/orders/${id}/payment-link`); }
 
+  // Driver
+  start(id: number) { return this.post<Order>(`api/orders/${id}/start`); }
+  resendOtp(id: number) { return this.post<void>(`api/orders/${id}/resend-otp`); }
+  sendLocation(id: number, lat: number, lng: number) { return this.post<void>(`api/orders/${id}/location`, { lat, lng }); }
+  complete(id: number, r: { otp: string; fullCansDelivered: number; emptyCansCollected: number; cashCollected: number }) {
+    return this.post<Order>(`api/orders/${id}/complete`, r);
+  }
+
   // Staff
   confirm(id: number) { return this.post<Order>(`api/orders/${id}/confirm`); }
   assign(id: number, driverId: number) { return this.post<Order>(`api/orders/${id}/assign`, { driverId }); }

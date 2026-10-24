@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, customerGuard, staffGuard } from './shared/guards';
+import { adminGuard, customerGuard, driverGuard, staffGuard } from './shared/guards';
 
 export const routes: Routes = [
   { path: 'admin/login', title: 'Staff sign-in · WBMS', loadComponent: () => import('./admin/admin-login').then((m) => m.AdminLogin) },
@@ -16,6 +16,15 @@ export const routes: Routes = [
       { path: 'reports', title: 'Reports · WBMS', loadComponent: () => import('./admin/admin-reports').then((m) => m.AdminReports) },
       { path: 'staff', title: 'Staff · WBMS', canActivate: [adminGuard], loadComponent: () => import('./admin/admin-staff').then((m) => m.AdminStaff) },
       { path: 'account', title: 'Account · WBMS', loadComponent: () => import('./admin/admin-account').then((m) => m.AdminAccount) },
+    ],
+  },
+  {
+    path: 'driver',
+    canActivate: [driverGuard],
+    loadComponent: () => import('./driver/driver-shell').then((m) => m.DriverShell),
+    children: [
+      { path: '', title: 'Deliveries · WBMS', loadComponent: () => import('./driver/driver-orders').then((m) => m.DriverOrders) },
+      { path: 'orders/:id', title: 'Delivery · WBMS', loadComponent: () => import('./driver/delivery').then((m) => m.Delivery) },
     ],
   },
   {

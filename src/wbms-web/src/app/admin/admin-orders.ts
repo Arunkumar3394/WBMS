@@ -26,7 +26,10 @@ const FILTERS: { label: string; value: string }[] = [
   template: `
     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
       <h1 class="h4 mb-0 me-3">Orders</h1>
-      <div class="btn-group btn-group-sm flex-wrap" role="group">
+      <select class="form-select form-select-sm w-auto d-md-none" [ngModel]="status()" (ngModelChange)="setStatus($event)" aria-label="Show orders">
+        @for (f of filters; track f.value) { <option [value]="f.value">{{ f.label }}</option> }
+      </select>
+      <div class="btn-group btn-group-sm d-none d-md-flex" role="group">
         @for (f of filters; track f.value) {
           <button class="btn" [class.btn-primary]="status() === f.value" [class.btn-outline-primary]="status() !== f.value" (click)="setStatus(f.value)">{{ f.label }}</button>
         }
@@ -79,17 +82,17 @@ const FILTERS: { label: string; value: string }[] = [
     }
 
     <div class="table-responsive">
-      <table class="table table-sm align-middle">
+      <table class="table table-sm align-middle table-stack">
         <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th class="text-end">Total</th><th>Status</th><th>Driver</th><th></th></tr></thead>
         <tbody>
           @for (o of orders(); track o.id) {
             <tr>
-              <td><div class="fw-semibold">{{ o.orderNo }}</div><div class="small text-body-secondary">{{ o.slotDate }}</div></td>
-              <td>{{ o.customerName }}<div class="small text-body-secondary">{{ o.customerPhone }} · {{ o.address }}</div></td>
-              <td class="small">{{ itemsText(o) }}@if (o.notes) { <div class="text-body-secondary">“{{ o.notes }}”</div> }</td>
-              <td class="text-end">{{ o.total | currency: 'INR' : 'symbol' : '1.0-0' }}<div class="small text-body-secondary">{{ o.paymentMode }}</div></td>
-              <td><app-status [status]="o.status" [staff]="true" /></td>
-              <td>
+              <td data-label="Order"><div class="fw-semibold">{{ o.orderNo }}</div><div class="small text-body-secondary">{{ o.slotDate }}</div></td>
+              <td data-label="Customer"><div>{{ o.customerName }}<div class="small text-body-secondary">{{ o.customerPhone }} · {{ o.address }}</div></div></td>
+              <td data-label="Items" class="small"><div>{{ itemsText(o) }}@if (o.notes) { <div class="text-body-secondary">“{{ o.notes }}”</div> }</div></td>
+              <td data-label="Total" class="text-end"><div>{{ o.total | currency: 'INR' : 'symbol' : '1.0-0' }}<div class="small text-body-secondary">{{ o.paymentMode }}</div></div></td>
+              <td data-label="Status"><app-status [status]="o.status" [staff]="true" /></td>
+              <td data-label="Driver">
                 @if (o.status === 'Confirmed' || o.status === 'Assigned') {
                   <select class="form-select form-select-sm" [ngModel]="o.driverId ?? 0" (ngModelChange)="assign(o, $event)">
                     <option [ngValue]="0" disabled>Assign…</option>
@@ -102,7 +105,7 @@ const FILTERS: { label: string; value: string }[] = [
                   }
                 }
               </td>
-              <td class="text-nowrap text-end">
+              <td data-label="" class="text-nowrap text-end actions">
                 @if (o.status === 'Placed' || o.status === 'Paid' || o.status === 'OnCredit') {
                   <button class="btn btn-sm btn-primary me-1" (click)="confirm(o)" [disabled]="busy()">Confirm</button>
                 }

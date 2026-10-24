@@ -20,13 +20,13 @@ import { Role, Staff } from '../shared/models';
       <div class="col-md-2"><button class="btn btn-success w-100" [disabled]="busy()">Add</button></div>
     </form>
     <p class="small text-body-secondary">Staff can do everything except manage staff logins. Admins can also add and switch off logins.</p>
-    <table class="table table-sm align-middle">
+    <table class="table table-sm align-middle table-stack">
       <thead><tr><th>Name</th><th>Phone</th><th>Role</th><th></th></tr></thead>
       <tbody>
         @for (u of staff(); track u.id) {
           <tr [class.text-body-secondary]="!u.isActive">
-            <td>{{ u.name }}</td><td>{{ u.phone }}</td><td>{{ u.role }}</td>
-            <td class="text-end">
+            <td data-label="Name">{{ u.name }}</td><td data-label="Phone">{{ u.phone }}</td><td data-label="Role">{{ u.role }}</td>
+            <td data-label="" class="text-end actions">
               @if (u.id !== me) {
                 <button class="btn btn-sm btn-outline-secondary" (click)="toggle(u)" [disabled]="busy()">{{ u.isActive ? 'Switch off' : 'Switch on' }}</button>
               }

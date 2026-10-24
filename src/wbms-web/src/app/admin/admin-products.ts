@@ -18,22 +18,22 @@ import { Product } from '../shared/models';
         <label for="ret" class="form-check-label">Returnable can</label></div></div>
       <div class="col-md-3"><button class="btn btn-success w-100" [disabled]="busy()">Add product</button></div>
     </form>
-    <table class="table align-middle">
+    <table class="table align-middle table-stack">
       <thead><tr><th>Product</th><th>Price (₹)</th><th class="text-end">Full in stock</th><th>Add filled stock</th><th></th></tr></thead>
       <tbody>
         @for (p of products(); track p.id) {
           <tr [class.text-body-secondary]="!p.isActive">
-            <td>{{ p.name }} @if (p.isReturnable) { <span class="badge text-bg-light">Returnable</span> }
-              @if (!p.isActive) { <span class="badge text-bg-secondary">Not on sale</span> }</td>
-            <td><input type="number" class="form-control form-control-sm price" [ngModel]="p.price" (change)="setPrice(p, $any($event.target).value)" /></td>
-            <td class="text-end" [class.text-danger]="p.stockFull < 20">{{ p.stockFull }}</td>
-            <td>
+            <td data-label="Product"><span>{{ p.name }} @if (p.isReturnable) { <span class="badge text-bg-light">Returnable</span> }
+              @if (!p.isActive) { <span class="badge text-bg-secondary">Not on sale</span> }</span></td>
+            <td data-label="Price (₹)"><input type="number" class="form-control form-control-sm price" [ngModel]="p.price" (change)="setPrice(p, $any($event.target).value)" /></td>
+            <td data-label="Full in stock" class="text-end" [class.text-danger]="p.stockFull < 20">{{ p.stockFull }}</td>
+            <td data-label="Add stock">
               <div class="input-group input-group-sm fill">
                 <input type="number" class="form-control" [(ngModel)]="fill[p.id]" placeholder="Qty" />
                 <button class="btn btn-outline-primary" (click)="addStock(p)" [disabled]="busy() || !fill[p.id]">Add</button>
               </div>
             </td>
-            <td class="text-end">
+            <td data-label="" class="text-end actions">
               <button class="btn btn-sm btn-outline-secondary" (click)="toggle(p)" [disabled]="busy()">{{ p.isActive ? 'Stop selling' : 'Sell again' }}</button>
             </td>
           </tr>

@@ -11,6 +11,7 @@ export class AuthService {
   readonly user = computed<SignedInUser | null>(() => this.session()?.user ?? null);
   readonly token = computed(() => this.session()?.token ?? null);
   readonly isCustomer = computed(() => this.user()?.role === 'Customer');
+  readonly isDriver = computed(() => this.user()?.role === 'Driver');
   readonly isStaff = computed(() => ['Admin', 'Staff'].includes(this.user()?.role ?? ''));
   readonly isAdmin = computed(() => this.user()?.role === 'Admin');
 

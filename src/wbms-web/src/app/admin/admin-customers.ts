@@ -31,21 +31,21 @@ import { Customer, CustomerType } from '../shared/models';
     </div></details>
 
     <div class="table-responsive">
-      <table class="table table-sm align-middle">
+      <table class="table table-sm align-middle table-stack">
         <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th class="text-end">Credit limit</th><th class="text-end">Due (₹)</th><th class="text-end">Cans</th><th>Settle dues (cash)</th></tr></thead>
         <tbody>
           @for (c of shown(); track c.id) {
             <tr [class.text-body-secondary]="!c.user.isActive">
-              <td>{{ c.user.name }} <span class="badge text-bg-light">{{ c.type }}</span>
-                @if (!c.user.isActive) { <span class="badge text-bg-secondary">Off</span> }</td>
-              <td>{{ c.user.phone }}</td>
-              <td class="small">{{ c.addresses[0]?.line }}{{ c.addresses[0]?.area ? ', ' + c.addresses[0]?.area : '' }}</td>
-              <td class="text-end">
+              <td data-label="Name"><span>{{ c.user.name }} <span class="badge text-bg-light">{{ c.type }}</span>
+                @if (!c.user.isActive) { <span class="badge text-bg-secondary">Off</span> }</span></td>
+              <td data-label="Phone"><a [href]="'tel:' + c.user.phone">{{ c.user.phone }}</a></td>
+              <td data-label="Address" class="small">{{ c.addresses[0]?.line }}{{ c.addresses[0]?.area ? ', ' + c.addresses[0]?.area : '' }}</td>
+              <td data-label="Credit limit" class="text-end">
                 <input type="number" class="form-control form-control-sm text-end limit" [ngModel]="c.creditLimit" (change)="setLimit(c, $any($event.target).value)" />
               </td>
-              <td class="text-end" [class.text-danger]="c.balance > 0">{{ c.balance | number: '1.0-0' }}</td>
-              <td class="text-end">{{ c.cansHeld }}</td>
-              <td>
+              <td data-label="Due (₹)" class="text-end" [class.text-danger]="c.balance > 0">{{ c.balance | number: '1.0-0' }}</td>
+              <td data-label="Cans" class="text-end">{{ c.cansHeld }}</td>
+              <td data-label="" class="actions">
                 @if (c.balance > 0) {
                   <div class="input-group input-group-sm settle">
                     <input type="number" class="form-control" [(ngModel)]="settleAmount[c.id]" [placeholder]="c.balance" />

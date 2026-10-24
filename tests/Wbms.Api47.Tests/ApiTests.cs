@@ -168,9 +168,9 @@ public class ApiTests : IDisposable
         Assert.Contains("already confirmed", (string)(await res.ReadJson())["error"]!);
     }
 
-    /// <summary>The mobile app (Wbms.Client) reads these exact JSON names and formats.</summary>
+    /// <summary>The website (src/wbms-web/src/app/shared/models.ts) reads these exact JSON names and formats.</summary>
     [Fact]
-    public async Task Json_matches_what_the_mobile_app_reads()
+    public async Task Json_matches_what_the_website_reads()
     {
         var customer = await app.SignIn("9000000002");
         var orderId = await BookCans(customer, 2);
