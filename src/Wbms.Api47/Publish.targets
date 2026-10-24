@@ -1,0 +1,33 @@
+<Project>
+  <!-- Builds a folder that can be copied to IIS or zipped for Azure App Service:
+         dotnet msbuild -restore src\Wbms.Api47 -t:PublishSite -p:Configuration=Release
+       (deploy\make-package.cmd also builds the Angular site first). Output: publish\site -->
+  <PropertyGroup>
+    <SitePublishDir>$(MSBuildThisFileDirectory)..\..\publish\site\</SitePublishDir>
+  </PropertyGroup>
+
+  <Target Name="PublishSite">
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)wwwroot\index.html')" Text="The Angular site is not built. Run 'npm run build' in src\wbms-web first." />
+
+    <RemoveDir Directories="$(SitePublishDir)" />
+    <!-- ASP.NET loads only .dll files from bin, so the IIS build is a class library. -->
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Build"
+             Properties="Configuration=$(Configuration);OutputType=Library;AutoGenerateBindingRedirects=true;GenerateBindingRedirectsOutputType=true;IisPackage=true;OutputPath=$(SitePublishDir)bin\;IntermediateOutputPath=$(BaseIntermediateOutputPath)iis\" />
+
+    <ItemGroup>
+      <_SiteWebRoot Include="$(MSBuildThisFileDirectory)wwwroot\**" />
+      <!-- QuestPDF looks for its native library next to the site as well as in bin. -->
+      <_SiteNative Include="$(SitePublishDir)bin\runtimes\win-*\**" Prefix="runtimes\" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_SiteWebRoot)" DestinationFiles="@(_SiteWebRoot->'$(SitePublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(_SiteNative)" DestinationFiles="@(_SiteNative->'$(SitePublishDir)%(Prefix)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <!-- IIS runs on Windows only. -->
+    <RemoveDir Directories="$(SitePublishDir)bin\runtimes\linux-arm64;$(SitePublishDir)bin\runtimes\linux-musl-x64;$(SitePublishDir)bin\runtimes\linux-x64;$(SitePublishDir)bin\runtimes\osx-arm64;$(SitePublishDir)bin\runtimes\osx-x64" />
+
+    <XslTransformation XmlInputPaths="$(SitePublishDir)bin\$(AssemblyName).dll.config"
+                       XslInputPath="$(MSBuildThisFileDirectory)Web.config.xslt"
+                       OutputPaths="$(SitePublishDir)Web.config" />
+    <Delete Files="$(SitePublishDir)bin\$(AssemblyName).dll.config" />
+    <Message Importance="high" Text="Site package ready: $(SitePublishDir)" />
+  </Target>
+</Project>

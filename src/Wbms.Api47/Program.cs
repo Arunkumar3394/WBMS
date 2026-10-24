@@ -24,11 +24,7 @@ public static class Program
         }
         services.WebRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
 
-        using (var db = services.CreateDb())
-        {
-            db.Database.Initialize(false); // creates the database on first run
-            if (AppConfig.GetBool("Seed:DemoData", false)) SeedData.Ensure(db);
-        }
+        PrepareDatabase(services);
 
         var url = AppConfig.Get("Web:Url", "http://localhost:5080/");
         using (WebApp.Start(url, app => Startup.Configure(app, services)))
@@ -39,5 +35,14 @@ public static class Program
             stop.WaitOne();
         }
         return 0;
+    }
+
+    /// <summary>Creates the database on first run and adds the demo data or the first admin when configured. Shared with <see cref="IisStartup"/>.</summary>
+    public static void PrepareDatabase(WbmsServices services)
+    {
+        using var db = services.CreateDb();
+        db.Database.Initialize(false);
+        if (AppConfig.GetBool("Seed:DemoData", false)) SeedData.Ensure(db);
+        SeedData.EnsureFirstAdmin(db, AppConfig.Get("Setup:AdminPhone"), AppConfig.Get("Setup:AdminPassword"));
     }
 }

@@ -247,3 +247,29 @@ public class OtpTests
         Assert.Equal("9876543210", AuthService.Normalize("9876543210"));
     }
 }
+
+public class FirstAdminTests
+{
+    [Fact]
+    public async Task Live_server_gets_its_first_admin_once_from_settings()
+    {
+        var db = new WbmsDb(Effort.DbConnectionFactory.CreateTransient(), true);
+        SeedData.EnsureFirstAdmin(db, "", "");
+        Assert.False(db.Users.Any());
+
+        SeedData.EnsureFirstAdmin(db, "9123456789", "Owner@2026");
+        var user = await new AuthService(db, new SmsInbox()).VerifyPasswordAsync("9123456789", "Owner@2026");
+        Assert.Equal(UserRole.Admin, user.Role);
+
+        // Later starts leave the existing admin alone, even with other values.
+        SeedData.EnsureFirstAdmin(db, "9111111111", "Another@2026");
+        Assert.Single(db.Users);
+    }
+
+    [Fact]
+    public void Short_password_is_refused()
+    {
+        var db = new WbmsDb(Effort.DbConnectionFactory.CreateTransient(), true);
+        Assert.Throws<InvalidOperationException>(() => SeedData.EnsureFirstAdmin(db, "9123456789", "short"));
+    }
+}
