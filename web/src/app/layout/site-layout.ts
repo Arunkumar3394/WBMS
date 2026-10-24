@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { BUSINESS, telLink, whatsappLink } from '../core/business';
+import { AuthService } from '../core/auth.service';
 import { CartService } from '../core/cart.service';
 import { Logo } from '../shared/ui';
 
@@ -30,6 +31,11 @@ const NAV = [
           }
         </nav>
         <div class="flex items-center gap-2">
+          @if (auth.signedIn()) {
+            <a routerLink="/account" class="hidden rounded-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-700 sm:inline-flex">My account</a>
+          } @else {
+            <a routerLink="/login" class="hidden rounded-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-700 sm:inline-flex">Sign in</a>
+          }
           <a routerLink="/cart" class="relative rounded-full p-2 text-slate-700 hover:bg-brand-50 hover:text-brand-700"
              [attr.aria-label]="'Cart, ' + cart.count() + (cart.count() === 1 ? ' item' : ' items')">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -59,6 +65,7 @@ const NAV = [
               <a [routerLink]="item.path" routerLinkActive="text-brand-700" ariaCurrentWhenActive="page"
                  class="rounded-lg px-2 py-3 font-medium text-slate-700">{{ item.label }}</a>
             }
+            <a [routerLink]="auth.signedIn() ? '/account' : '/login'" class="rounded-lg px-2 py-3 font-medium text-slate-700">{{ auth.signedIn() ? 'My account' : 'Sign in' }}</a>
             <a routerLink="/products" class="btn-primary my-2">Order water</a>
           </div>
         </nav>
@@ -126,6 +133,7 @@ const NAV = [
 })
 export class SiteLayout {
   protected readonly cart = inject(CartService);
+  protected readonly auth = inject(AuthService);
   protected readonly nav = NAV;
   protected readonly business = BUSINESS;
   protected readonly whatsapp = whatsappLink();

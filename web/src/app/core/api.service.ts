@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { APP_CONFIG } from './app-config';
-import { Catalog, EnquiryRequest, PincodeCheck, Product, PublicSettings, Slot, Testimonial } from './models';
+import { Address, AddressInput, Catalog, CustomerType, EnquiryRequest, PincodeCheck, Product, Profile, PublicSettings, Slot, Testimonial } from './models';
 
 /** Calls the AquaPure API. Errors become ApiError with a message that is safe to show. */
 @Injectable({ providedIn: 'root' })
@@ -36,6 +36,15 @@ export class ApiService {
   slots = (date: string) => this.get<Slot[]>('/delivery/slots', { date });
   testimonials = () => this.get<Testimonial[]>('/testimonials');
   submitEnquiry = (e: EnquiryRequest) => this.post<{ ok: boolean; id?: string }>('/enquiries', e);
+
+  // ---------- Signed-in customer ----------
+  me = () => this.get<Profile>('/me');
+  updateMe = (p: { full_name: string; phone: string | null; customer_type: CustomerType }) => this.put<Profile>('/me', p);
+  addresses = () => this.get<Address[]>('/me/addresses');
+  addAddress = (a: AddressInput) => this.post<Address>('/me/addresses', a);
+  updateAddress = (id: string, a: AddressInput) => this.put<Address>('/me/addresses/' + id, a);
+  makeDefaultAddress = (id: string) => this.post<Address>('/me/addresses/' + id + '/default');
+  deleteAddress = (id: string) => this.delete<{ ok: boolean }>('/me/addresses/' + id);
 
   private async run<T>(request: import('rxjs').Observable<T>): Promise<T> {
     try {

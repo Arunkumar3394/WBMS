@@ -86,3 +86,31 @@ export interface EnquiryRequest {
   message: string;
   website?: string; // spam trap, must stay empty
 }
+
+export type CustomerType = 'home' | 'office' | 'shop' | 'hotel' | 'other';
+
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  role: 'customer' | 'staff' | 'admin';
+  customer_type: CustomerType;
+  cans_with_deposit: number;
+  deposit_balance: number;
+}
+
+export interface Address {
+  id: string;
+  label: string;
+  contact_name: string;
+  contact_phone: string;
+  line1: string;
+  line2: string | null;
+  landmark: string | null;
+  city: string;
+  pincode: string;
+  is_default: boolean;
+}
+
+export type AddressInput = Omit<Address, 'id'>;
