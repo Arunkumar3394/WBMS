@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "api", "api", "{0910C0F4-7C8B-4D6D-AA78-7C483769C2E0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AquaPure.Api", "api\AquaPure.Api\AquaPure.Api.csproj", "{13AF988D-679A-4180-8B72-445BA00B327A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AquaPure.Api.Tests", "api\AquaPure.Api.Tests\AquaPure.Api.Tests.csproj", "{D44F962E-E779-4A87-8FD4-8EA5348A767D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{13AF988D-679A-4180-8B72-445BA00B327A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13AF988D-679A-4180-8B72-445BA00B327A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13AF988D-679A-4180-8B72-445BA00B327A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13AF988D-679A-4180-8B72-445BA00B327A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D44F962E-E779-4A87-8FD4-8EA5348A767D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D44F962E-E779-4A87-8FD4-8EA5348A767D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D44F962E-E779-4A87-8FD4-8EA5348A767D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D44F962E-E779-4A87-8FD4-8EA5348A767D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{13AF988D-679A-4180-8B72-445BA00B327A} = {0910C0F4-7C8B-4D6D-AA78-7C483769C2E0}
+		{D44F962E-E779-4A87-8FD4-8EA5348A767D} = {0910C0F4-7C8B-4D6D-AA78-7C483769C2E0}
+	EndGlobalSection
+EndGlobal

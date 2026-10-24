@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>AquaPure.Api</RootNamespace>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASP.NET Web API 2, self-hosted with OWIN (HttpListener). IIS fronts it in production. -->
+    <PackageReference Include="Microsoft.AspNet.WebApi.OwinSelfHost" Version="5.3.0" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Cors" Version="5.3.0" />
+    <PackageReference Include="Microsoft.Owin" Version="4.2.3" />
+    <PackageReference Include="Microsoft.Owin.Hosting" Version="4.2.3" />
+    <PackageReference Include="Microsoft.Owin.Host.HttpListener" Version="4.2.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- Postgres (Supabase). 8.0.x is the last Npgsql line that supports .NET Framework. -->
+    <PackageReference Include="Npgsql" Version="8.0.8" />
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <!-- Validates Supabase Auth access tokens (ES256 via JWKS, or the legacy HS256 secret). -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="secrets.config" CopyToOutputDirectory="PreserveNewest" Condition="Exists('secrets.config')" />
+  </ItemGroup>
+
+</Project>
