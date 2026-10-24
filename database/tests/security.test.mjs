@@ -164,3 +164,11 @@ test('product image uploads: admins only', async () => {
   const r = await asUser(db, alice, (tx) => tx.query("delete from storage.objects where bucket_id = 'product-images'"));
   assert.equal(r.affectedRows, 0);
 });
+
+test('running the setup a second time stops with a clear message and changes nothing', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const sql = await readFile(new URL('../supabase-setup.sql', import.meta.url), 'utf8');
+  await rejects(db.exec('begin;\n' + sql + '\ncommit;'), 'P0001', 'already installed');
+  await db.exec('rollback;').catch(() => {});
+  assert.equal((await one(db, 'select count(*)::int n from app.products')).n, 6);
+});

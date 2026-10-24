@@ -2,26 +2,22 @@
 // to run SQL as a visitor, a signed-in user, or the API's own database role,
 // the same way the .NET API does on Supabase.
 import { PGlite } from '@electric-sql/pglite';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-export async function createDb({ seed = true } = {}) {
+/**
+ * Loads supabase-setup.sql (built by build-setup.mjs: every migration plus the seed), the exact
+ * file pasted into Supabase. pg_cron is not available in PGlite; 0009 skips it with a notice.
+ */
+export async function createDb() {
   const db = new PGlite();
   await db.exec(await readFile(path.join(root, 'tests', 'supabase-stub.sql'), 'utf8'));
-  const files = (await readdir(path.join(root, 'migrations'))).filter((f) => f.endsWith('.sql')).sort();
-  for (const f of files) {
-    if (f.includes('_cron')) continue; // pg_cron is not available in PGlite
-    try {
-      await db.exec(await readFile(path.join(root, 'migrations', f), 'utf8'));
-    } catch (e) {
-      throw new Error(`${f}: ${e.message}`);
-    }
-  }
-  if (seed) await db.exec(await readFile(path.join(root, 'seed.sql'), 'utf8'));
+  // One transaction, like the Supabase SQL Editor: all or nothing.
+  await db.exec('begin;\n' + (await readFile(path.join(root, 'supabase-setup.sql'), 'utf8')) + '\ncommit;');
   return db;
 }
 

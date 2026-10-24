@@ -1,8 +1,18 @@
 # Database (Supabase Postgres)
 
-## Run the scripts
+## Install (one file)
 
-In the Supabase Dashboard open **SQL Editor → New query**, paste each file, and click **Run**, in this order:
+1. Open `supabase-setup.sql` in VS Code, press **Ctrl+A** and then **Ctrl+C**.
+2. In the Supabase Dashboard open **SQL Editor → New query**, paste it, and click **Run**.
+3. The result should say **AquaPure database installed**. If you see an error instead, nothing was changed; send the error message to your developer.
+
+`supabase-setup.sql` is generated from the files below (`npm run build`), so edit those, not the combined file.
+
+Running it again on an installed project stops with "already installed" and changes nothing.
+
+If pg_cron is not enabled, the install still completes. It shows a notice and skips one job, the one that cancels unpaid online orders. To add it, enable **pg_cron** under **Database → Extensions** and then run `migrations/0009_cron.sql`.
+
+## What's inside
 
 | Order | File | What it does |
 |---|---|---|
@@ -14,7 +24,7 @@ In the Supabase Dashboard open **SQL Editor → New query**, paste each file, an
 | 6 | `migrations/0006_payment_functions.sql` | Razorpay checkout, capture / failure, webhooks, rate limit, expiry |
 | 7 | `migrations/0007_storage.sql` | `product-images` bucket and admin-only upload policies |
 | 8 | `migrations/0008_reports.sql` | Sales summary and dashboard numbers |
-| 9 | `migrations/0009_cron.sql` | Expires unpaid online orders every 10 minutes (enable **pg_cron** first if it asks) |
+| 9 | `migrations/0009_cron.sql` | Expires unpaid online orders every 10 minutes (skipped with a notice if pg_cron is not enabled) |
 | 10 | `seed.sql` | Sample categories, products (sample prices), zones, slots, sample reviews |
 
 Each script runs once on a fresh project. To start over, run `drop schema app cascade;`. That deletes all AquaPure data, so do it only on a test project. Then run the scripts again.

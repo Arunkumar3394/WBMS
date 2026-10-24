@@ -8,7 +8,14 @@
 -- only exposes "public" (and "graphql_public"), so these tables are not reachable
 -- with the public publishable/anon key. The .NET API is the only way in, and RLS
 -- still applies as a second line of defence.
-create schema if not exists app;
+do $$
+begin
+  if exists (select 1 from pg_namespace where nspname = 'app') then
+    raise exception 'AquaPure is already installed (schema "app" exists). To reinstall on a TEST project, first run: drop schema app cascade;';
+  end if;
+end $$;
+
+create schema app;
 revoke all on schema app from public;
 
 -- ---------- Types ----------
@@ -41,5 +48,10 @@ begin
   end if;
 end $$;
 
-grant anon, authenticated to wbms_api;
+do $$
+begin
+  grant anon, authenticated to wbms_api;
+exception when insufficient_privilege then
+  raise exception 'Supabase did not allow "grant anon, authenticated to wbms_api" (%). Send this message to your developer.', sqlerrm;
+end $$;
 grant usage on schema app to wbms_api, anon, authenticated;

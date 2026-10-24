@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node build-setup.mjs",
+    "pretest": "node build-setup.mjs",
     "test": "node --test tests/"
   },
   "devDependencies": {
