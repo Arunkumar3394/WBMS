@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http.Connections;
 using Wbms.Client;
 using Wbms.Client.ViewModels;
 
@@ -57,12 +56,7 @@ public class MobileClientTests : IDisposable
         }
 
         // Customer opens live tracking
-        var server = factory.Server;
-        await using var tracking = new TrackingViewModel(customerApi, o =>
-        {
-            o.HttpMessageHandlerFactory = _ => server.CreateHandler();
-            o.Transports = HttpTransportType.LongPolling;
-        });
+        await using var tracking = new TrackingViewModel(customerApi, TimeSpan.FromMilliseconds(100));
         await tracking.StartAsync(order.Id);
         Assert.Null(tracking.Error);
 
